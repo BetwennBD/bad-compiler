@@ -264,6 +264,22 @@ public:
     void setValue( int _valueLiteral ) { valueLiteral = _valueLiteral; }
 };
 
+class FloatingLiteral : public Expr {
+protected:
+    double valueLiteral;
+
+public:
+    FloatingLiteral(double _valueLiteral)
+            : Expr() {
+        stmtKind = k_FloatingLiteral;
+        valueLiteral = _valueLiteral;
+    }
+
+    double getValue() const { return valueLiteral; }
+
+    void setValue( double _valueLiteral ) { valueLiteral = _valueLiteral; }
+};
+
 class StringLiteral : public Expr {
 protected:
     std::string stringContent;

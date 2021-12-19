@@ -16,7 +16,7 @@
 
 primary_expression
 	: IDENTIFIER                                                                    ## Ref
-	| CONSTANT                                                                      ## IntLiteral
+	| CONSTANT                                                                      ## NumLiteral
 	| STRING_LITERAL                                                                ## StrLiteral
 	| '(' expression ')'
 	;

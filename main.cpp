@@ -1,18 +1,13 @@
 #include <iostream>
-#include <fstream>
 #include <ctime>
-#include <fstream>
 #include "include/Yacc/Grammar.h"
 #include "include/Yacc/GrammarParser.h"
-#include "include/Yacc/Items.h"
-#include "include/Yacc/utils.h"
 #include "include/Yacc/Constructor.h"
 #include "include/Parser/CST.h"
 #include "include/Parser/CSTBuilder.h"
 #include "include/AST/ASTBuilder.h"
 #include "include/ASTConsumers/ASTDumper.h"
-#include "include/ASTConsumers/IRGenerator.h"
-#include "llvm/Config/abi-breaking.h"
+//#include "include/ASTConsumers/IRGenerator.h"
 
 std::vector<LexUnit> constructTestCase( const char* );
 
@@ -25,15 +20,15 @@ int main() {
     lalrConstructor.constructLR0Core();
     lalrConstructor.labelPropagate();
     lalrConstructor.extend();
-    lalrConstructor.printItemSet();
-    lalrConstructor.generateTable();
-    lalrConstructor.printTable();
+    lalrConstructor.printItemSet("../output/item_set.txt");
+    lalrConstructor.generateTable("../output/conflict.txt");
+    lalrConstructor.printTable("../output/action.txt", "../output/goto.txt");
     end = clock();
-    std::cout << "Total LALR takes " << double(end - start) / CLOCKS_PER_SEC << "s." << std::endl;
+//    std::cout << "Total LALR takes " << double(end - start) / CLOCKS_PER_SEC << "s." << std::endl;
 
     CSTBuilder cstBuilder(&lalrConstructor, &grammarSet);
     std::vector<LexUnit> testVec = constructTestCase("../etc/tokens4.txt");
-    CSTNode *head = cstBuilder.constructCST(testVec, 1);
+    CSTNode *head = cstBuilder.constructCST(testVec, 0);
 
     if(head == NULL)
         std::cout << "create CST failed";
@@ -45,9 +40,9 @@ int main() {
     ASTDumper astDumper;
     astDumper.traverseTranslationUnitDecl(translationUnitDecl);
 
-    IRGenerator irGenerator;
-    irGenerator.traverseTranslationUnitDecl(translationUnitDecl);
-    deleteCST(head);
+//    IRGenerator irGenerator;
+//    irGenerator.traverseTranslationUnitDecl(translationUnitDecl);
+//    deleteCST(head);
 }
 
 std::vector<LexUnit> constructTestCase(const char* filename) {

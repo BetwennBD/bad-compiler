@@ -274,6 +274,8 @@ DEF_TRAVERSE_STMT(DeclRefExpr, {})
 
 DEF_TRAVERSE_STMT(IntegerLiteral, {})
 
+DEF_TRAVERSE_STMT(FloatingLiteral, {})
+
 DEF_TRAVERSE_STMT(StringLiteral, {})
 
 DEF_TRAVERSE_STMT(ExplicitCastExpr, {
@@ -300,6 +302,9 @@ void RecursiveASTVisitor<Derived>::traverseExprHelper( Expr *expr, std::string c
             break;
         case(Stmt::k_IntegerLiteral):
             traverseIntegerLiteral(dynamic_cast<IntegerLiteral*>(expr));
+            break;
+        case(Stmt::k_FloatingLiteral):
+            traverseFloatingLiteral(dynamic_cast<FloatingLiteral*>(expr));
             break;
         case(Stmt::k_StringLiteral):
             traverseStringLiteral(dynamic_cast<StringLiteral*>(expr));

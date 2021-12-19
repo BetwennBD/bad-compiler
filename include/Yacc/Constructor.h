@@ -65,11 +65,11 @@ public:
 
     Constructor( GrammarSet* );
 
-    void generateTable();
+    void generateTable( const char* = "conflict.txt" );
 
-    void printTable(const char* actionFile = "action.txt", const char* gotoFile = "goto.txt");
+    void printTable(const char* = "action.txt", const char* = "goto.txt");
 
-    void printItemSet( const char* filename = "item_set.txt" );
+    void printItemSet( const char* = "item_set.txt" );
 };
 
 class LALRconstructor : public Constructor

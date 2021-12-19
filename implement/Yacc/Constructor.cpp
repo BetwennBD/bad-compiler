@@ -176,7 +176,9 @@ Item Constructor::laClosure(Item item) {
     return newItem;
 }
 
-void Constructor::generateTable() {
+void Constructor::generateTable(const char* conflictLogFile) {
+    std::ofstream conflictLog(conflictLogFile);
+
     // 构造非终结符和终结符表
     for(Token token : grammarSet->m_tokenList) {
         if(grammarSet->isNonTerminal(token)) {
@@ -212,7 +214,7 @@ void Constructor::generateTable() {
             }
             else {
                 if(actionTable[i][terminalIndex[token]] != -1)
-                    std::cout << "report shift/shift conflict.\n";
+                    conflictLog << "report shift/shift conflict.\n";
                 actionTable[i][terminalIndex[token]] = trans[i][j];
             }
         }
@@ -227,20 +229,20 @@ void Constructor::generateTable() {
                         // 移入 / 规约冲突 : 优先移入
                         if (actionTable[i][terminalIndex["$"]] != -1 &&
                             actionTable[i][terminalIndex["$"]] < reduceSign) {
-                            std::cout << "report shift/reduce conflict.\n";
-                            std::cout << "conflict token is " << "$" << ".\n";
-                            for(Entry entryt : item) {
-                                if(entryt.currentToken() == "$")
-                                    printEntry(entryt);
+                            conflictLog << "report shift/reduce conflict.\n";
+                            conflictLog << "conflict token is " << "$" << ".\n";
+                            for (Entry entryt: item) {
+                                if (entryt.currentToken() == "$")
+                                    printEntryToStream(entryt, conflictLog);
                             }
-                            printEntry(entry);
-                            std::cout << std::endl;
+                            printEntryToStream(entry, conflictLog);
+                            conflictLog << std::endl;
                             continue;
                         }
                         // 规约 / 规约冲突 : 目前没有
                         if (actionTable[i][terminalIndex["$"]] != -1 &&
                             actionTable[i][terminalIndex["$"]] >= reduceSign) {
-                            std::cout << "report reduce/reduce conflict.\n";
+                            conflictLog << "report reduce/reduce conflict.\n";
                         }
 
                         actionTable[i][terminalIndex["$"]] = reduceSign | entry.id;
@@ -253,20 +255,20 @@ void Constructor::generateTable() {
                         // 移入 / 规约冲突 : 优先移入
                         if (actionTable[i][terminalIndex[token]] != -1 &&
                             actionTable[i][terminalIndex[token]] < reduceSign) {
-                            std::cout << "report shift/reduce conflict:\n";
-                            std::cout << "conflict token is " << token << ".\n";
-                            for(Entry entryt : item) {
-                                if(entryt.currentToken() == token)
-                                    printEntry(entryt);
+                            conflictLog << "report shift/reduce conflict:\n";
+                            conflictLog << "conflict token is " << token << ".\n";
+                            for (Entry entryt: item) {
+                                if (entryt.currentToken() == token)
+                                    printEntryToStream(entryt, conflictLog);
                             }
-                            printEntry(entry);
-                            std::cout << std::endl;
+                            printEntryToStream(entry, conflictLog);
+                            conflictLog << std::endl;
                             continue;
                         }
                         // 规约 / 规约冲突 : 目前没有
                         if (actionTable[i][terminalIndex[token]] != -1 &&
                             actionTable[i][terminalIndex[token]] >= reduceSign) {
-                            std::cout << "report reduce/reduce conflict.\n";
+                            conflictLog << "report reduce/reduce conflict.\n";
                         }
 
                         actionTable[i][terminalIndex[token]] = reduceSign | entry.id;

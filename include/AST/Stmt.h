@@ -43,6 +43,7 @@ public:
         k_CallExpr,
         k_DeclRefExpr,
         k_IntegerLiteral,
+        k_FloatingLiteral,
         k_StringLiteral,
         k_CastExpr,
         k_ExplicitCastExpr,

@@ -234,7 +234,7 @@ public:
     {
         outSpace();
         recordLevel.push(S);
-        std::cout << "IntegerLiteral "<<"[" <<S->getValue() << "] ";
+        std::cout << "IntegerLiteral "<<"[" << S->getValue() << "] ";
         outType(S->getType());
         std::cout << "\n";
         return true;
@@ -243,11 +243,24 @@ public:
         recordLevel.pop();
         return true;
     }
+    bool visitFloatingLiteral(FloatingLiteral* S)
+    {
+        outSpace();
+        recordLevel.push(S);
+        std::cout << "FloatingLiteral "<<"[" << S->getValue() << "] ";
+        outType(S->getType());
+        std::cout << "\n";
+        return true;
+    }
+    bool cleanupFloatingLiteral(){
+        recordLevel.pop();
+        return true;
+    }
     bool visitStringLiteral(StringLiteral* S)
     {
         outSpace();
         recordLevel.push(S);
-        std::cout << "StringLiteral "<<"[" <<S->getString() << "] ";
+        std::cout << "StringLiteral "<<"[" << S->getString() << "] ";
         outType(S->getType());
         std::cout << "\n";
         return true;

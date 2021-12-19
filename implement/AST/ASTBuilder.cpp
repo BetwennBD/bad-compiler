@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <cmath>
 #include "include/AST/ASTBuilder.h"
 
 TranslationUnitDecl* ASTBuilder::constructAST(CSTNode *head, int verbose) {
@@ -88,17 +89,26 @@ void ASTBuilder::quitRef(CSTNode *node) {
 }
 
 // 处理数字常量
-void ASTBuilder::enterIntLiteral(CSTNode *node) {}
+void ASTBuilder::enterNumLiteral(CSTNode *node) {}
 
-void ASTBuilder::quitIntLiteral(CSTNode *node) {
+void ASTBuilder::quitNumLiteral(CSTNode *node) {
     assert(node->getChildren().size() == 1);
     CSTNode *pNode = node->getChildren()[0];
     assert(pNode->isTerminal());
 
     AbstractASTNode *parent = nodeStack.top();
-    IntegerLiteral *pIntegerLiteral = new IntegerLiteral(stoi(pNode->getId()));
 
-    exprCommonAction(parent, pIntegerLiteral, "IntLiteral");
+    std::string s = pNode->getId();
+    Expr *pNumLiteral;
+    // 判断是浮点数还是整数
+    if(s.find('E') == s.npos &&
+        s.find('e') == s.npos &&
+        s.find('.') == s.npos)
+        pNumLiteral = new IntegerLiteral(std::stoi(s));
+    else
+        pNumLiteral = new FloatingLiteral(std::stod(s));
+
+    exprCommonAction(parent, pNumLiteral, "NumLiteral");
 }
 
 // 处理数字常量
