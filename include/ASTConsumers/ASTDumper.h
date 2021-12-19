@@ -183,7 +183,7 @@ public:
     {
         outSpace();
         recordLevel.push(S);
-        std::cout << "UnaryOperator ";
+        std::cout << "UnaryOperator " << "[Op#" << S->getOp() << "] ";
         outType(S->getType());
         std::cout << "\n";
         return true;
@@ -196,7 +196,7 @@ public:
     {
         outSpace();
         recordLevel.push(S);
-        std::cout << "BinaryOperator ";
+        std::cout << "BinaryOperator " << "[Op#" << S->getOp() << "] ";
         outType(S->getType());
         std::cout << "\n";
         return true;

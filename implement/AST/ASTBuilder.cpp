@@ -147,12 +147,14 @@ void ASTBuilder::quitFuncCall(CSTNode *node) {
 void ASTBuilder::enterPostOp(CSTNode *node) {
     assert(node->getChildren().size() == 2 && node->getChildren()[1]->isTerminal());
     UnaryOperator *unaryOperator = new UnaryOperator();
-    std::string opKind = node->getChildren()[1]->getId();
+    std::string opKind = node->getChildren()[1]->getType();
 
     if(opKind == "INC_OP")
         unaryOperator->setOp(UnaryOperator::_post_inc);
-    if(opKind == "DEC_OP")
+    else if(opKind == "DEC_OP")
         unaryOperator->setOp(UnaryOperator::_post_dec);
+    else
+        assert(false && "invalid Post Op");
     nodeStack.push(unaryOperator);
 }
 
@@ -167,9 +169,9 @@ void ASTBuilder::quitPostOp(CSTNode *node) {
 void ASTBuilder::enterPreOp(CSTNode *node) {
     assert(node->getChildren().size() == 2);
     UnaryOperator *unaryOperator = new UnaryOperator();
-    std::string opKind = node->getChildren()[0]->getId();
+    std::string opKind;
     if(node->getChildren()[0]->isTerminal())
-        opKind = node->getChildren()[1]->getType();
+        opKind = node->getChildren()[0]->getType();
     else {
         CSTNode *pNode = node->getChildren()[0];
         assert(pNode->getChildren().size() == 1 && pNode->getChildren()[0]->isTerminal());
@@ -178,20 +180,22 @@ void ASTBuilder::enterPreOp(CSTNode *node) {
 
     if(opKind == "INC_OP")
         unaryOperator->setOp(UnaryOperator::_pre_inc);
-    if(opKind == "DEC_OP")
+    else if(opKind == "DEC_OP")
         unaryOperator->setOp(UnaryOperator::_pre_dec);
-    if(opKind == "&")
+    else if(opKind == "&")
         unaryOperator->setOp(UnaryOperator::_address_of);
-    if(opKind == "*")
+    else if(opKind == "*")
         unaryOperator->setOp(UnaryOperator::_indirection);
-    if(opKind == "~")
+    else if(opKind == "~")
         unaryOperator->setOp(UnaryOperator::_bit_not);
-    if(opKind == "!")
+    else if(opKind == "!")
         unaryOperator->setOp(UnaryOperator::_not);
-    if(opKind == "+")
+    else if(opKind == "+")
         unaryOperator->setOp(UnaryOperator::_unary_plus);
-    if(opKind == "-")
+    else if(opKind == "-")
         unaryOperator->setOp(UnaryOperator::_unary_minus);
+    else
+        assert(false && "invalid Pre Op");
     nodeStack.push(unaryOperator);
 }
 
