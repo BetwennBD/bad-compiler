@@ -142,6 +142,13 @@ public:
             return true;
         return false;
     }
+    bool operator == (QualType cmp) const {
+        if(qualifier.getQual() != cmp.qualifier.getQual())
+            return false;
+        if(type->getKind() != cmp.getType()->getKind())
+            return false;
+        return true;
+    }
 };
 
 class BuiltInType : public Type {
