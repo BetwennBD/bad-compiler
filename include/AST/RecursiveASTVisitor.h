@@ -93,7 +93,7 @@ void raiseNoSupport( bool, short, std::string );
      bool shouldVisitChildren = true;                                           \
      if (getDerived().traverseInPreOrder())                                     \
        shouldVisitChildren = walkUpFrom##DECL(D);                               \
-     { CODE; }                                                                  \
+     if(shouldVisitChildren) { CODE; }                                          \
      if (getDerived().traverseInPreOrder())                                     \
        getDerived().cleanup##DECL();                                            \
      if (shouldVisitChildren && !getDerived().traverseInPreOrder())             \
@@ -165,7 +165,7 @@ DEF_TRAVERSE_DECL(ParamVarDecl, {
      bool shouldVisitChildren = true;                                           \
      if (getDerived().traverseInPreOrder())                                     \
        shouldVisitChildren = walkUpFrom##STMT(S);                               \
-     { CODE; }                                                                  \
+     if(shouldVisitChildren) { CODE; }                                          \
      if (getDerived().traverseInPreOrder())                                     \
        getDerived().cleanup##STMT();                                            \
      if (shouldVisitChildren && !getDerived().traverseInPreOrder())             \

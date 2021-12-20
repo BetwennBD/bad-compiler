@@ -136,7 +136,7 @@ public:
     {
         //todo:这里有filltype的内容
         bool flag=true;
-        std::string curName=E->getRefname();
+        std::string curName=E->getRefName();
         ValueDecl* v=E->getValueDecl();
         QualType curType;
         curFunction=tables[tables.size()-1];
@@ -172,7 +172,7 @@ public:
             return true;
         }
         DeclRefExpr* function= dynamic_cast<DeclRefExpr* >(E->getArg(0));
-        std::string funcName=function->getRefname();
+        std::string funcName=function->getRefName();
         QualType funcType=function->getType();
         //在globalcontext里面找到这个函数，并get到它的参数类型，与调用时的参数类型比对
         int h=curRoot->getNumFunc();

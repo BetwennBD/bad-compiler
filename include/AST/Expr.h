@@ -239,7 +239,7 @@ public:
         valueDecl = nullptr;
     }
 
-    std::string getRefname() { return refName; }
+    std::string getRefName() { return refName; }
 
     void setRefName( std::string _refName ) { refName = _refName; }
 

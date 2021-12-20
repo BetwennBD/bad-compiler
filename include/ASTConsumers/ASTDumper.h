@@ -242,7 +242,7 @@ public:
     {
         outSpace();
         recordLevel.push(S);
-        std::cout << "DeclRefExpr " << "[" << S->getRefname() << "] ";
+        std::cout << "DeclRefExpr " << "[" << S->getRefName() << "] ";
          outType(S->getType());
         std::cout << "\n";
         return true;
