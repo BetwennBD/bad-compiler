@@ -42,11 +42,11 @@ public:
         opMap.insert(std::make_pair("RIGHT_OP", BinaryOperator::_rsh));
 
         opMap.insert(std::make_pair("EQ_OP", BinaryOperator::_eq));
-        opMap.insert(std::make_pair("NE_OP", BinaryOperator::_ne));
+        opMap.insert(std::make_pair("NE_OP", BinaryOperator::_neq));
         opMap.insert(std::make_pair("<", BinaryOperator::_lt));
         opMap.insert(std::make_pair(">", BinaryOperator::_gt));
-        opMap.insert(std::make_pair("LE_OP", BinaryOperator::_le));
-        opMap.insert(std::make_pair("GE_OP", BinaryOperator::_ge));
+        opMap.insert(std::make_pair("LE_OP", BinaryOperator::_leq));
+        opMap.insert(std::make_pair("GE_OP", BinaryOperator::_geq));
         opMap.insert(std::make_pair("AND_OP", BinaryOperator::_log_and));
         opMap.insert(std::make_pair("OR_OP", BinaryOperator::_log_or));
 

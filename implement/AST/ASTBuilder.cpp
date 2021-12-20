@@ -338,24 +338,24 @@ void ASTBuilder::enterQfName(CSTNode *node) {}
 
 void ASTBuilder::quitQfName(CSTNode *node) {
     assert(node->getChildren().size() == 1);
-    CSTNode *pnode = node->getChildren()[0];
-    assert(pnode->isTerminal());
+    CSTNode *pNode = node->getChildren()[0];
+    assert(pNode->isTerminal());
 
     AbstractASTNode *parent = nodeStack.top();
     if(parent->isQualType()) {
-        if (pnode->getType() == "CONST") {
+        if (pNode->getType() == "CONST") {
             dynamic_cast<QualType*>(parent)->setConst();
             return;
         }
-        if (pnode->getType() == "VOLATILE") {
+        if (pNode->getType() == "VOLATILE") {
             dynamic_cast<QualType*>(parent)->setVolatile();
             return;
         }
-        if (pnode->getType() == "RESTRICT") {
+        if (pNode->getType() == "RESTRICT") {
             dynamic_cast<QualType*>(parent)->setRestrict();
             return;
         }
-        if (pnode->getType() == "ATOMIC") {
+        if (pNode->getType() == "ATOMIC") {
             dynamic_cast<QualType*>(parent)->setAtomic();
             return;
         }

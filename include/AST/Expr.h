@@ -107,11 +107,11 @@ public:
         _rsh,           // right shift
         // 逻辑运算符
         _eq,
-        _ne,
+        _neq,
         _lt,            // less than
         _gt,            // greater than
-        _le,
-        _ge,
+        _leq,
+        _geq,
         _log_and,
         _log_or,
         // 赋值运算符
