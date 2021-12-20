@@ -26,9 +26,30 @@ public:
 
     void outType(QualType t)
     {
-        std::cout << "(";
-        std::cout << "type";
-        std::cout << ")";
+        /*std::cout << "(";
+        std::string curQual;
+        std::string curType;
+        if(t.isAtomic())
+           std::cout<<"atomic ";
+        if(t.isConst())
+            std::cout<<"const ";
+        if(t.isVolatile())
+            std::cout<<"volatile ";
+        if(t.isRestrict())
+            std::cout<<"restrict ";
+        Type*cType=t.getType();
+        if(cType->getKind()==Type::k_BuiltInType)
+        {
+            curType= dynamic_cast<BuiltInType*>(cType)->getTypeTypeAsString();
+        }
+        else if(cType->getKind()==Type::k_ArrayType)
+            //todo:要输出成 int[30]这种格式，后面记得改
+            curType="Array";
+        else if(cType->getKind()==Type::k_PointerType)
+            curType="Pointer";
+        std::cout <<curType;
+        std::cout << ")";*/
+        std::cout<<"( type )";
     }
 
     bool visitTranslationUnitDecl(TranslationUnitDecl *D) {
@@ -197,7 +218,7 @@ public:
         outSpace();
         recordLevel.push(S);
         std::cout << "BinaryOperator " << "[Op#" << S->getOp() << "] ";
-        outType(S->getType());
+         outType(S->getType());
         std::cout << "\n";
         return true;
     }
@@ -222,7 +243,7 @@ public:
         outSpace();
         recordLevel.push(S);
         std::cout << "DeclRefExpr " << "[" << S->getRefname() << "] ";
-        outType(S->getType());
+         outType(S->getType());
         std::cout << "\n";
         return true;
     }
