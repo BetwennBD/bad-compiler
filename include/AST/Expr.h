@@ -46,7 +46,7 @@ public:
 
     void setValueKind( ExprValueKind _valueKind ) { valueKind = _valueKind; }
 
-    QualType getType() const { return exprType; }
+    QualType getQualType() const { return exprType; }
 
     void setType( QualType _exprType ) { exprType =  _exprType; }
 };
@@ -192,7 +192,7 @@ public:
 
     void setCastType( QualType _castType ) { exprType = _castType; }
 
-    QualType getPrevType() const { return castedExpr->getType(); }
+    QualType getPrevType() const { return castedExpr->getQualType(); }
 
     Expr* getCastedExpr() { return castedExpr; }
 
