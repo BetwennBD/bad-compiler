@@ -22,6 +22,7 @@
 
 #include <vector>
 #include <string>
+#include<map>
 #include <cassert>
 #include "include/AST/Type.h"
 #include "include/AST/AbstractASTNode.h"
@@ -89,7 +90,7 @@ public:
 class DeclContext {
 private:
     std::vector< Decl* > decls;
-
+    std::vector<std::map<std::string, QualType>* >symbolTables;
 public:
     DeclContext() {
         decls.resize(0);
@@ -103,13 +104,123 @@ public:
     }
 
     void addDecl( Decl *decl ) { decls.emplace_back(decl); }
+    void addSymbolTable(std::map<std::string, QualType>*newtable)
+    {
+        symbolTables.push_back(newtable);
+    }
+    //当前符号表
+    std::map<std::string, QualType>* getCurSymbolTable()
+    {
+        return symbolTables[symbolTables.size() - 1];
+    }
+    //当前局部作用域结束了，表也退出
+    void exitCurSymbolTable()
+    {
+        symbolTables.pop_back();
+    }
+    bool checkSymbol(std::string name,QualType& type)
+    {
+        std::cout<<"let us check a symbol whose name is "<<name<<std::endl;
+        //检查一个变量是否出现过，存在返回true并更新QualType
+        if(symbolTables.size()>0)
+        {
+            for (auto it = symbolTables.end() - 1; it >= symbolTables.begin(); --it)
+            {
+                if((*it)->size()==0)
+                    return false;
+                //此时的it是个map
+                if ((*it)->find(name) != (*it)->end())
+                {
+                    type= (*it)->find(name)->second;
+                    std::cout<<name<<" is a identifier~ \n";
+                    return true;
+                }
+            }
+            std::cout << "please check if it is a global indentifier" <<std::endl;
+            return false;
+        }
+        else
+            return false;
+
+    }
+    bool  addSymbol(std::string name, QualType type)
+    {
+        std::map<std::string, QualType>* curtable = this->getCurSymbolTable();
+        if (!checkSymbol(name,type))
+        {
+            std::cout<<"let us add a symbol whose name is "<<name<<std::endl;
+            curtable->insert(make_pair(name, type));
+            return true;
+        }
+        std::cout << "Error, it has already declared!";
+        return false;
+    }
 };
 
 // 全局的上下文
 // 主要用于保存全局变量，类/结构体定义和函数定义（目前）
 class GlobalContext {
+protected:
+    std::vector< Decl* > decls;
+    std::vector< Stmt* > stmts;
+    std::vector< Decl* > tpfuncs;
+    //全局符号表
+    std::map<std::string, QualType> symbolTable;
 public:
-    GlobalContext() {}
+    GlobalContext() {
+        decls.resize(0);
+        stmts.resize(0);
+    }
+
+    int getNumDecls() const { return decls.size(); }
+
+    Decl* getDecl(int pos) {
+        assert(pos < decls.size() && "Asking for decl out of bound.");
+        return decls[pos];
+    }
+
+    void addDecl( Decl *decl )
+    {
+        decls.emplace_back(decl);
+    }
+
+    int getNumStmts() const { return stmts.size(); }
+
+    Stmt* getStmt(int pos) {
+        assert(pos < stmts.size() && "Asking for decl out of bound.");
+        return stmts[pos];
+    }
+    void addStmt( Stmt *stmt ) { stmts.emplace_back(stmt); }
+    std::map<std::string, QualType> getSymbolTable()
+    {
+        return symbolTable;
+    }
+    void addSymbol(std::string _name, QualType _type)
+    {
+        std::cout<<"let us add a global indentifier whose name is "<<_name<<std::endl;
+        symbolTable.insert(make_pair(_name, _type));
+    }
+    bool checkSymbol(std::string name, QualType type)
+    {
+        std::cout<<"let us check if a symbol is a global identifier whose name is "<<name<<std::endl;
+        if(symbolTable.find(name)!=symbolTable.end())
+        {
+            type=symbolTable.find(name)->second;
+            std::cout<<name<<" is a global identifier~ \n";
+            return true;
+        }
+        std::cout<<name<<" is not a global identifier~ \n";
+        return false;
+    }
+    int getNumFunc() const { return tpfuncs.size(); }
+    Decl* getFunc(int pos) {
+        assert(pos < tpfuncs.size() && "ZQ:Asking for decl out of bound.");
+        return tpfuncs[pos];
+    }
+    void addFunc( Decl *decl )
+    {
+        tpfuncs.emplace_back(decl);
+    }
 };
 
 class TranslationUnitDecl : public Decl, public GlobalContext {
