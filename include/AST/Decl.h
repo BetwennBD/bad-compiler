@@ -120,23 +120,21 @@ public:
     }
     bool checkSymbol(std::string name,QualType& type)
     {
-        std::cout<<"let us check a symbol whose name is "<<name<<std::endl;
         //检查一个变量是否出现过，存在返回true并更新QualType
         if(symbolTables.size()>0)
         {
-            for (auto it = symbolTables.end() - 1; it >= symbolTables.begin(); --it)
+            for (int it = symbolTables.size() - 1; it >=0; --it)
             {
-                if((*it)->size()==0)
-                    return false;
+                if(symbolTables[it]->size()==0)
+                    continue;
                 //此时的it是个map
-                if ((*it)->find(name) != (*it)->end())
+                if (symbolTables[it]->find(name) != symbolTables[it]->end())
                 {
-                    type= (*it)->find(name)->second;
+                    type= symbolTables[it]->find(name)->second;
                     std::cout<<name<<" is a identifier~ \n";
                     return true;
                 }
             }
-            std::cout << "please check if it is a global indentifier" <<std::endl;
             return false;
         }
         else
@@ -148,22 +146,20 @@ public:
         std::map<std::string, QualType>* curtable = this->getCurSymbolTable();
         if (!checkSymbol(name,type))
         {
-            std::cout<<"let us add a symbol whose name is "<<name<<std::endl;
-            curtable->insert(make_pair(name, type));
+            std::cout<<"add a symbol "<<name<<std::endl;
+            curtable->insert(std::make_pair(name, type));
             return true;
         }
         std::cout << "Error, it has already declared!";
         return false;
     }
 };
-
 // 全局的上下文
 // 主要用于保存全局变量，类/结构体定义和函数定义（目前）
 class GlobalContext {
 protected:
     std::vector< Decl* > decls;
     std::vector< Stmt* > stmts;
-    std::vector< Decl* > tpfuncs;
     //全局符号表
     std::map<std::string, QualType> symbolTable;
 public:
@@ -197,39 +193,27 @@ public:
     }
     void addSymbol(std::string _name, QualType _type)
     {
-        std::cout<<"let us add a global indentifier whose name is "<<_name<<std::endl;
+        short k=_type.getTypeKind();
         symbolTable.insert(make_pair(_name, _type));
     }
-    bool checkSymbol(std::string name, QualType type)
+    bool checkSymbol(std::string name, QualType&type)
     {
-        std::cout<<"let us check if a symbol is a global identifier whose name is "<<name<<std::endl;
         if(symbolTable.find(name)!=symbolTable.end())
         {
             type=symbolTable.find(name)->second;
             std::cout<<name<<" is a global identifier~ \n";
             return true;
         }
-        std::cout<<name<<" is not a global identifier~ \n";
         return false;
     }
-    int getNumFunc() const { return tpfuncs.size(); }
-    Decl* getFunc(int pos) {
-        assert(pos < tpfuncs.size() && "ZQ:Asking for decl out of bound.");
-        return tpfuncs[pos];
-    }
-    void addFunc( Decl *decl )
-    {
-        tpfuncs.emplace_back(decl);
-    }
 };
-
 class TranslationUnitDecl : public Decl, public GlobalContext {
 protected:
     std::vector< Decl* > decls;
     std::vector< Stmt* > stmts;
 public:
     TranslationUnitDecl()
-    : Decl(), GlobalContext() {
+            : Decl(), GlobalContext() {
         declKind = k_TranslationUnitDecl;
         decls.resize(0);
         stmts.resize(0);
@@ -342,20 +326,19 @@ public:
 
     void setBody(CompoundStmt *_functionBody) { functionBody = _functionBody; }
 };
-
 class VarDecl : public DeclaratorDecl {
 protected:
     Expr *initializer;
 
 public:
     VarDecl()
-    : DeclaratorDecl() {
+            : DeclaratorDecl() {
         declKind = k_VarDecl;
         initializer = nullptr;
     }
 
     VarDecl( std::string _name, QualType _valueType )
-    : DeclaratorDecl( _name, _valueType) {
+            : DeclaratorDecl( _name, _valueType) {
         declKind = k_VarDecl;
         initializer = nullptr;
     }
@@ -367,17 +350,20 @@ public:
     void setInitializer( Expr *_initializer ) { initializer = _initializer; }
 };
 
+
 class ParamVarDecl : public VarDecl {
 public:
     ParamVarDecl()
-    : VarDecl() {
+            : VarDecl() {
         declKind = k_ParamVarDecl;
     }
 
     ParamVarDecl( std::string _name, QualType _valueType )
-    : VarDecl( _name, _valueType) {
+            : VarDecl( _name, _valueType) {
         declKind = k_ParamVarDecl;
     }
 };
+
+
 
 #endif //FRONTEND_DECL_H
