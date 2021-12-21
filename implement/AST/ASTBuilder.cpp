@@ -125,6 +125,40 @@ void ASTBuilder::quitStrLiteral(CSTNode *node) {
     exprCommonAction(parent, pStringLiteral, "StrLiteral");
 }
 
+// 处理数组和结构体元素选择
+void ASTBuilder::enterSelector(CSTNode *node) {
+    // 多个selector仅需一个selectorArray
+    if(nodeStack.top()->isStmt() && dynamic_cast<Stmt*>(nodeStack.top())->getKind() == Stmt::k_SelectorArray)
+        return;
+
+    SelectorArray *selectorArray = new SelectorArray();
+    nodeStack.push(selectorArray);
+}
+
+void ASTBuilder::quitSelector(CSTNode *node) {
+    SEC_GET_STMT(SelectorArray)
+
+    while(nodeStack.top()->isStmt()) {
+        if(auto tempStmt = dynamic_cast<DerefSelector*>(nodeStack.top())) {
+            pSelectorArray->addSelector(dynamic_cast<DerefSelector*>(tempStmt));
+            nodeStack.pop();
+            delete tempStmt;
+        }
+        else if(auto tempStmt = dynamic_cast<SelectorArray*>(nodeStack.top())) {
+            // 这里假设若其上方有SelectorArray，则必为空，因为内容还未被遍历到
+            // 所以直接用当前SelectorArray替换
+            delete tempStmt;
+            nodeStack.pop();
+            tempStmt = pSelectorArray;
+            return;
+        }
+        else break;
+    }
+
+    AbstractASTNode *parent = nodeStack.top();
+    exprCommonAction(parent, pSelectorArray, "Selector");
+}
+
 // 处理函数调用
 void ASTBuilder::enterFuncCall(CSTNode *node) {
     CallExpr *callExpr = new CallExpr();
@@ -168,7 +202,6 @@ void ASTBuilder::quitPostOp(CSTNode *node) {
 // 处理一元前缀运算符
 void ASTBuilder::enterPreOp(CSTNode *node) {
     assert(node->getChildren().size() == 2);
-    UnaryOperator *unaryOperator = new UnaryOperator();
     std::string opKind;
     if(node->getChildren()[0]->isTerminal())
         opKind = node->getChildren()[0]->getType();
@@ -178,14 +211,19 @@ void ASTBuilder::enterPreOp(CSTNode *node) {
         opKind = pNode->getChildren()[0]->getType();
     }
 
+    if(opKind == "*") {
+        DerefSelector *derefSelector = new DerefSelector();
+        nodeStack.push(derefSelector);
+        return;
+    }
+
+    UnaryOperator *unaryOperator = new UnaryOperator();
     if(opKind == "INC_OP")
         unaryOperator->setOp(UnaryOperator::_pre_inc);
     else if(opKind == "DEC_OP")
         unaryOperator->setOp(UnaryOperator::_pre_dec);
     else if(opKind == "&")
         unaryOperator->setOp(UnaryOperator::_address_of);
-    else if(opKind == "*")
-        unaryOperator->setOp(UnaryOperator::_indirection);
     else if(opKind == "~")
         unaryOperator->setOp(UnaryOperator::_bit_not);
     else if(opKind == "!")
@@ -200,6 +238,13 @@ void ASTBuilder::enterPreOp(CSTNode *node) {
 }
 
 void ASTBuilder::quitPreOp(CSTNode *node) {
+    // 对解引用特别处理（即不处理，因为会在selector处处理）
+    if(!node->getChildren()[0]->isTerminal()) {
+        std::string opKind;
+        opKind = node->getChildren()[0]->getChildren()[0]->getType();
+        if(opKind == "*") return;
+    }
+
     SEC_GET_STMT(UnaryOperator)
 
     AbstractASTNode *parent = nodeStack.top();
@@ -930,11 +975,12 @@ void ASTBuilder::exprCommonAction(AbstractASTNode *parent, Expr *pExpr, std::str
         return;
     }
     if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_BinaryOperator) {
-        if(!dynamic_cast<BinaryOperator*>(parent)->hasLHS()) {
-            dynamic_cast<BinaryOperator*>(parent)->setLHS(pExpr);
+        auto pParent = dynamic_cast<BinaryOperator*>(parent);
+        if(!pParent->hasLHS()) {
+            pParent->setLHS(pExpr);
         }
-        else if(!dynamic_cast<BinaryOperator*>(parent)->hasRHS()) {
-            dynamic_cast<BinaryOperator *>(parent)->setRHS(pExpr);
+        else if(!pParent->hasRHS()) {
+            pParent->setRHS(pExpr);
         }
         else raiseRuleViolation(ctx, parent);
 
@@ -942,6 +988,21 @@ void ASTBuilder::exprCommonAction(AbstractASTNode *parent, Expr *pExpr, std::str
     }
     if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_VirtualStmt) {
         dynamic_cast<VirtualStmt*>(parent)->setRealStmt(pExpr);
+        return;
+    }
+    if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_SelectorArray) {
+        auto pParent = dynamic_cast<SelectorArray*>(parent);
+        if(!pParent->hasSubExpr())
+            pParent->setSubExpr(pExpr);
+        else if(pExpr->getKind() == Stmt::k_DeclRefExpr) {
+            auto pNewSelector = new FieldSelector(dynamic_cast<DeclRefExpr*>(pExpr)->getRefName());
+            pParent->addSelector(pNewSelector);
+        }
+        else {
+            auto pNewSelector = new IndexSelector(pExpr);
+            pParent->addSelector(pNewSelector);
+        }
+
         return;
     }
     if(parent->isQualType() && dynamic_cast<QualType*>(parent)->getTypeKind() == Type::k_VariableArrayType) {

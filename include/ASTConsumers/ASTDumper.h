@@ -205,7 +205,7 @@ public:
         outSpace();
         recordLevel.push(S);
         std::cout << "UnaryOperator " << "[Op#" << S->getOp() << "] ";
-        outType(S->getType());
+        outType(S->getQualType());
         std::cout << "\n";
         return true;
     }
@@ -218,7 +218,7 @@ public:
         outSpace();
         recordLevel.push(S);
         std::cout << "BinaryOperator " << "[Op#" << S->getOp() << "] ";
-         outType(S->getType());
+         outType(S->getQualType());
         std::cout << "\n";
         return true;
     }
@@ -243,11 +243,11 @@ public:
         outSpace();
         recordLevel.push(S);
         std::cout << "DeclRefExpr " << "[" << S->getRefName() << "] ";
-         outType(S->getType());
+         outType(S->getQualType());
         std::cout << "\n";
         return true;
     }
-    bool cleanupDeclRefExpr(){
+    bool cleanupDeclRefExpr() {
         recordLevel.pop();
         return true;
     }
@@ -256,11 +256,11 @@ public:
         outSpace();
         recordLevel.push(S);
         std::cout << "IntegerLiteral "<<"[" << S->getValue() << "] ";
-        outType(S->getType());
+        outType(S->getQualType());
         std::cout << "\n";
         return true;
     }
-    bool cleanupIntegerLiteral(){
+    bool cleanupIntegerLiteral() {
         recordLevel.pop();
         return true;
     }
@@ -269,7 +269,7 @@ public:
         outSpace();
         recordLevel.push(S);
         std::cout << "FloatingLiteral "<<"[" << S->getValue() << "] ";
-        outType(S->getType());
+        outType(S->getQualType());
         std::cout << "\n";
         return true;
     }
@@ -282,7 +282,7 @@ public:
         outSpace();
         recordLevel.push(S);
         std::cout << "StringLiteral "<<"[" << S->getString() << "] ";
-        outType(S->getType());
+        outType(S->getQualType());
         std::cout << "\n";
         return true;
     }
@@ -302,7 +302,7 @@ public:
         std::cout << "\n";
         return true;
     }
-    bool cleanupExplicitCastExpr(){
+    bool cleanupExplicitCastExpr() {
         recordLevel.pop();
         return true;
     }

@@ -86,6 +86,113 @@ public:
     Op getOp() const { return static_cast<Op>(opCode); }
 
     void setOp( Op _opcode ) { opCode = _opcode; }
+
+    bool isRef() { return opCode == _address_of; }
+
+    bool isDeref() { return opCode == _indirection; }
+};
+
+class Selector : public Expr {
+public:
+    Expr *subExpr;
+
+public:
+    Selector()
+    : Expr() {
+        stmtKind = k_Selector;
+        subExpr = nullptr;
+    }
+
+    Expr* getSubExpr() { return subExpr; }
+
+    bool hasSubExpr() const { return subExpr != nullptr; }
+
+    void setSubExpr( Expr * _subExpr ) { subExpr = _subExpr; }
+};
+
+class DerefSelector : public Selector {
+public:
+    DerefSelector()
+    : Selector() {
+        stmtKind = k_DerefSelector;
+    }
+};
+
+class IndexSelector : public Selector {
+public:
+    Expr *idxExpr;
+
+public:
+    IndexSelector()
+    : Selector() {
+        stmtKind = k_IndexSelector;
+        idxExpr = nullptr;
+    }
+
+    IndexSelector( Expr *_idxExpr )
+    : Selector() {
+        stmtKind = k_IndexSelector;
+        idxExpr = _idxExpr;
+    }
+
+    Expr* getIdxExpr() { return idxExpr; }
+
+    void setIdxExpr( Expr *_idxExpr ) { idxExpr = _idxExpr; }
+
+    bool hasIdxExpr() const { return idxExpr != nullptr; }
+};
+
+class FieldSelector : public Selector {
+public:
+    int idx;
+    std::string name;
+
+public:
+    FieldSelector()
+    : Selector() {
+        stmtKind = k_FieldSelector;
+        idx = 0;
+    }
+
+    FieldSelector( std::string _name )
+    : Selector() {
+        stmtKind = k_FieldSelector;
+        name = _name;
+        idx = 0;
+    }
+
+    int getIdx() { return idx; }
+
+    void setIdx( int _idx ) { idx = _idx; }
+
+    std::string getName() { return name; }
+
+    void setName( int _idx ) { idx = _idx; }
+};
+
+class SelectorArray : public Expr {
+public:
+    Expr *subExpr;
+    std::vector<Selector*> selectors;
+
+public:
+    SelectorArray()
+    : Expr() {
+        stmtKind = k_SelectorArray;
+        subExpr = nullptr;
+    }
+
+    Expr* getSubExpr() { return subExpr; }
+
+    bool hasSubExpr() const { return subExpr != nullptr; }
+
+    void setSubExpr( Expr * _subExpr ) { subExpr = _subExpr; }
+
+    int getNumSelectors() const { return selectors.size(); }
+
+    void addSelector( Selector *_selector ) { selectors.emplace_back(_selector); }
+
+    std::vector<Selector*>& getSelectors() { return selectors; }
 };
 
 class BinaryOperator : public Expr {

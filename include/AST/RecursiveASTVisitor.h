@@ -251,6 +251,37 @@ DEF_TRAVERSE_STMT(UnaryOperator, {
     traverseExprHelper(S->getSubExpr(), "UnaryOperator");
 })
 
+DEF_TRAVERSE_STMT(Selector, {})
+
+DEF_TRAVERSE_STMT(DerefSelector, {
+    assert(S->hasSubExpr());
+    traverseExprHelper(S->getSubExpr(), "DerefSelector");
+})
+
+DEF_TRAVERSE_STMT(IndexSelector, {
+    assert(S->hasSubExpr() && S->hasIdxExpr());
+    traverseExprHelper(S->getSubExpr(), "IndexSelector");
+    traverseExprHelper(S->getIdxExpr(), "IndexSelector");
+})
+
+DEF_TRAVERSE_STMT(FieldSelector, {
+    assert(S->hasSubExpr());
+    traverseExprHelper(S->getSubExpr(), "FieldSelector");
+})
+
+DEF_TRAVERSE_STMT(SelectorArray, {
+    assert(S->hasSubExpr());
+    traverseExprHelper(S->getSubExpr(), "SelectorArray");
+    for(auto selector : S->getSelectors()) {
+        if(auto exactS = dynamic_cast<DerefSelector*>(selector))
+            traverseDerefSelector(exactS);
+        else if(auto exactS = dynamic_cast<IndexSelector*>(selector))
+            traverseIndexSelector(exactS);
+        else if(auto exactS = dynamic_cast<FieldSelector*>(selector))
+            traverseFieldSelector(exactS);
+    }
+})
+
 DEF_TRAVERSE_STMT(BinaryOperator, {
     assert(S->hasLHS());
     traverseExprHelper(S->getLHS(), "BinaryOperator");
@@ -296,6 +327,18 @@ void RecursiveASTVisitor<Derived>::traverseExprHelper( Expr *expr, std::string c
             break;
         case(Stmt::k_UnaryOperator):
             traverseUnaryOperator(dynamic_cast<UnaryOperator*>(expr));
+            break;
+        case(Stmt::k_DerefSelector):
+            traverseDerefSelector(dynamic_cast<DerefSelector*>(expr));
+            break;
+        case(Stmt::k_IndexSelector):
+            traverseIndexSelector(dynamic_cast<IndexSelector*>(expr));
+            break;
+        case(Stmt::k_FieldSelector):
+            traverseFieldSelector(dynamic_cast<FieldSelector*>(expr));
+            break;
+        case(Stmt::k_SelectorArray):
+            traverseSelectorArray(dynamic_cast<SelectorArray*>(expr));
             break;
         case(Stmt::k_DeclRefExpr):
             traverseDeclRefExpr(dynamic_cast<DeclRefExpr*>(expr));

@@ -23,6 +23,12 @@ NUMLITERAL(NumLiteral)
 STRLITERAL(StrLiteral)
 #undef STRLITERAL
 
+#ifndef SELECTOR
+#define SELECTOR(TYPE) LISTEN(TYPE)
+#endif
+SELECTOR(Selector)
+#undef SELECTOR
+
 #ifndef FUNCCALL
 #define FUNCCALL(TYPE) LISTEN(TYPE)
 #endif

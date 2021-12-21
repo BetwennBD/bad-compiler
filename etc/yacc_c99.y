@@ -23,10 +23,10 @@ primary_expression
 
 postfix_expression
 	: primary_expression
-	| postfix_expression '[' expression ']'
+	| postfix_expression '[' expression ']'                                         ## Selector
 	| postfix_expression '(' ')'                                                    ## FuncCall
 	| postfix_expression '(' argument_expression_list ')'                           ## FuncCall
-	| postfix_expression '.' IDENTIFIER
+	| postfix_expression '.' IDENTIFIER                                             ## Selector
 	| postfix_expression PTR_OP IDENTIFIER
 	| postfix_expression INC_OP                                                     ## PostOp
 	| postfix_expression DEC_OP                                                     ## PostOp
