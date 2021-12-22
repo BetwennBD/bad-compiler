@@ -7,6 +7,11 @@
 #include "include/Parser/CSTBuilder.h"
 #include "include/AST/ASTBuilder.h"
 #include "include/ASTConsumers/ASTDumper.h"
+#include "include/ASTConsumers/FillType.h"
+#include "include/ASTConsumers/FillReference.h"
+#include "include/ASTConsumers/JustForTest.h"
+#include "include/ASTConsumers/ASTTypeCheck.h"
+#include  "include/Lexer/Lexer.h"
 //#include "include/ASTConsumers/IRGenerator.h"
 
 std::vector<LexUnit> constructTestCase( const char* );
@@ -27,7 +32,11 @@ int main() {
 //    std::cout << "Total LALR takes " << double(end - start) / CLOCKS_PER_SEC << "s." << std::endl;
 
     CSTBuilder cstBuilder(&lalrConstructor, &grammarSet);
-    std::vector<LexUnit> testVec = constructTestCase("../etc/tokens4.txt");
+    //std::vector<LexUnit> testVec = constructTestCase("../etc/tokens4.txt");
+    Lexer mylex("../etc/source.txt");
+    std::cout<<"get lex ";
+    std::vector<LexUnit> testVec=mylex.getAnalysis();
+
     CSTNode *head = cstBuilder.constructCST(testVec, 0);
 
     if(head == NULL)
@@ -39,7 +48,14 @@ int main() {
         std::cout << "create AST failed";
     ASTDumper astDumper;
     astDumper.traverseTranslationUnitDecl(translationUnitDecl);
-
+    FillReference fillReference;
+    fillReference.traverseTranslationUnitDecl(translationUnitDecl);
+    FillType fillType;
+    fillType.traverseTranslationUnitDecl(translationUnitDecl);
+    JustForTest justForTest;
+    justForTest.traverseTranslationUnitDecl(translationUnitDecl);
+    ASTTypeCheck astTypeCheck;
+    astTypeCheck.traverseTranslationUnitDecl(translationUnitDecl);
 //    IRGenerator irGenerator;
 //    irGenerator.traverseTranslationUnitDecl(translationUnitDecl);
 //    deleteCST(head);

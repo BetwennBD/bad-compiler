@@ -137,6 +137,7 @@ public:
             }
             return false;
         }
+        //没出现就返回false
         else
             return false;
 
@@ -152,6 +153,10 @@ public:
         }
         std::cout << "Error, it has already declared!";
         return false;
+    }
+    void clearSymbolTable()
+    {
+        symbolTables.clear();
     }
 };
 // 全局的上下文
@@ -193,11 +198,19 @@ public:
     }
     void addSymbol(std::string _name, QualType _type)
     {
-        short k=_type.getTypeKind();
-        symbolTable.insert(make_pair(_name, _type));
+        if(!checkSymbol(_name,_type))
+        {
+            std::cout<<"add a symbol "<<_name<<std::endl;
+            short k=_type.getTypeKind();
+            symbolTable.insert(make_pair(_name, _type));
+        }
+        else
+            std::cout<<_name<<" has been already added\n";
+
     }
     bool checkSymbol(std::string name, QualType&type)
     {
+        //能找到返回true
         if(symbolTable.find(name)!=symbolTable.end())
         {
             type=symbolTable.find(name)->second;
@@ -205,6 +218,10 @@ public:
             return true;
         }
         return false;
+    }
+    void clearSymbolTable()
+    {
+        symbolTable.clear();
     }
 };
 class TranslationUnitDecl : public Decl, public GlobalContext {
