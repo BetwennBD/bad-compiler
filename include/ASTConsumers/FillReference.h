@@ -106,7 +106,7 @@ public:
     {
         //这里是根据引用的原信息填充它的类型，不涉及检查类型
         bool flag=true;
-        std::string curName=E->getRefname();
+        std::string curName=E->getRefName();
         ValueDecl* v=E->getValueDecl();
         QualType curType;
         curFunction=tables[tables.size()-1];
@@ -165,6 +165,7 @@ public:
         return true;
     }
     bool cleanupFunctionDecl(){
+        tables[tables.size()-1]->clearSymbolTable();
         tables.erase(tables.end()-1);
         return true;
     }

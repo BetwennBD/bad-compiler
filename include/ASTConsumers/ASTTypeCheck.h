@@ -18,6 +18,7 @@ public:
     //符号表里面存储变量名和变量类型
     //tables空不空还能指示当前在函数里面还是全局
     std::vector<FunctionDecl*>tables;
+    std::vector<FunctionDecl>allFunctions;
     FunctionDecl* curFunction;
     TranslationUnitDecl* curRoot;
     int fornum=0;
@@ -32,14 +33,16 @@ public:
         curRoot=D;
         //函数为空，不需要typecheck
         std::cout<<"alloha"<<std::endl;
+        curRoot->clearSymbolTable();
         return true;
     }
+    //以下几个visit只涉及符号表的构造，无类型检查
+    //VarDecl ParamVarDecl FunctionDecl CompoundStmt ForStmt
     bool visitVarDecl(VarDecl* D)
     {
         //变量声明，考虑了全局和局部两种情况
         std::string curName=D->getName();
         QualType curType=D->getQualType();
-        std::cout<<curName<<std::endl;
         if(fornum==fornew)
         {
             if (tables.empty())
@@ -53,12 +56,11 @@ public:
         }
         else
         {
-            std::cout<<"it is in for\n";
+            std::cout<<"ForStmt\n";
             fornew++;
             curFunction = tables[tables.size() - 1];
             curFunction->addSymbol(curName, curType);
         }
-        std::cout<<"varDecl\n";
         return true;
     }
     bool visitParamVarDecl(ParamVarDecl* D)
@@ -67,19 +69,19 @@ public:
         QualType curType = D->getQualType();
         std::string curName = D->getName();
         dynamic_cast<DeclContext*>(curFunction)->addSymbol(curName,curType);
-        std::cout<<"ParamVarDecl"<<std::endl;
         return true;
     }
     bool visitFunctionDecl(FunctionDecl* D)
     {
         tables.push_back(D);
-        curRoot->addFunc(D);
+        allFunctions.push_back(*D);
         std::cout<<"let us add a new function "<<D->getName()<<std::endl;
         std::map<std::string, QualType>* firsttable=new std::map<std::string, QualType>();
         firsttable->clear();
         if(D->getNumParams()!=0)
+        {
             D->addSymbolTable(firsttable);
-        std::cout<<"FunctionDecl"<<std::endl;
+        }
         return true;
     }
     bool visitCompoundStmt(CompoundStmt* S)
@@ -89,11 +91,10 @@ public:
         curFunction->addSymbolTable(newtable);
         return true;
     }
-    //局部变量的声明
+    //变量的声明
     bool visitDeclStmt(DeclStmt* S)
     {
         //空的
-        std::cout<<"DeclStmt"<<std::endl;
         return true;
     }
     bool visitForStmt(ForStmt*S)
@@ -106,63 +107,38 @@ public:
     }
     bool visitReturnStmt(ReturnStmt* S)
     {
-        //todo：上次卡在这然后转向filltyoe
+        //理论上，ReturnStmt里只有expr信息，它在fiiltype里面已经被填充好类型了
         if (S->hasRetValue())
         {
             curFunction = tables[tables.size() - 1];
             QualType shouldReturn = curFunction->getQualType();
-            QualType actualReturn = S->getRetValue()->getType();
+            QualType actualReturn = S->getRetValue()->getQualType();
             if (canBeCasted(actualReturn,shouldReturn))
             {
-                std::cerr << "Error, please check your return type " << std::endl;
-                return true;
+                std::cout<<"A successful return in "<<curFunction->getName()<<"\n";
+                //不必向下检查了
+                return false;
             }
-            //自己递归计算expr
         }
         else
-        {//当前不返回，那么函数必须是void的
+        {
+            //当前不返回，那么函数必须是void的
             curFunction = tables[tables.size() - 1];
             QualType shouldReturn =curFunction->getQualType();
             QualType* shouldPointer=& shouldReturn;
             if (dynamic_cast<BuiltInType*>(shouldPointer)->typeEnum!= BuiltInType::_void)
             {
-                std::cerr << "Error, please check your return type " << std::endl;
-                return true;
+                std::cout << "Error, please check your return type " << std::endl;
+                return false;
             }
         }
-        return true;
     }
     bool visitDeclRefExpr(DeclRefExpr*E)
     {
-        //todo:这里有filltype的内容
-        bool flag=true;
-        std::string curName=E->getRefName();
-        ValueDecl* v=E->getValueDecl();
-        QualType curType;
-        curFunction=tables[tables.size()-1];
-        if(!curFunction->checkSymbol(curName,curType))
-        {
-            //其次，全局变量
-            if(!curRoot->checkSymbol(curName,curType))
-            {
-                //再次，全局函数名
-                for(int i=0;i!=curRoot->getNumFunc();++i)
-                {
-                    FunctionDecl* temp= dynamic_cast<FunctionDecl*>(curRoot->getFunc(i));
-                    std::string qname=temp->getName();
-                    curType=temp->getQualType();
-                    if(curName!=qname)
-                        flag=false;
-                }
-            }
-        }
-        std::cout<<"DeclRefExpr\n";
-       if(flag)
-       {
-           E->setType(curType);
-       }
-        return  true;
+        //fillreference.h里已经填充好类型，而且它也不需要检查
+       return true;
     }
+    //检查重灾区——CallExpr
     bool visitCallExpr(CallExpr* E)
     {
         //获取函数名称和类型
@@ -171,64 +147,61 @@ public:
             std::cerr<<"Error, check if the first parameter is declrefexpr"<<std::endl;
             return true;
         }
+        //call的原函数，declrefexpr已经将自己的type变成函数的rettype了，可以放心使用
         DeclRefExpr* function= dynamic_cast<DeclRefExpr* >(E->getArg(0));
         std::string funcName=function->getRefName();
-        QualType funcType=function->getType();
-        //在globalcontext里面找到这个函数，并get到它的参数类型，与调用时的参数类型比对
-        int h=curRoot->getNumFunc();
-        for(int i=0;i!=curRoot->getNumFunc();++i)
+        QualType funcType=function->getQualType();
+        E->setType(funcType);
+        //allFucntions里面找到这个函数，并get到它的参数类型，与调用时的参数类型比对
+        for(int i=0;i!=allFunctions.size();++i)
         {
-            FunctionDecl* curFunc=dynamic_cast<FunctionDecl*>(curRoot->getFunc(i));
-            std::string curName=curFunction->getName();
-            QualType curType=curFunction->getQualType();
-            if(curName==funcName&&canBeCasted(funcType,curType))
+            FunctionDecl curFunc=allFunctions[i];
+            std::string curName=curFunc.getName();
+            QualType curType=curFunc.getQualType();
+            if(curName==funcName&&E->getNumArgs()==curFunc.getNumParams()+1)
             {
-                //函数名字对了返回类型可以，这时候就该检查形参和实参。支持同名函数
                 bool flag=true;
-                std::cout<<"88888888888888888888888888\n";
-                for(int j=0;j!=curFunc->getNumParams();++j)
+                for(int j=0;j!=curFunc.getNumParams();++j)
                 {
-                    ParamVarDecl*D=curFunc->getParam(j);
+                    ParamVarDecl*D=curFunc.getParam(j);
                     QualType paraType = D->getQualType();
                     Expr* actualPara=E->getArg(j+1);
-                    QualType actualType=actualPara->getType();
+                    QualType actualType=actualPara->getQualType();
                     if(!canBeCasted(actualType,paraType))
                     {
                         flag=false;
                         break;
                     }
                 }
+                //若函数参数全部匹配上了
                 if(flag)
                 {
-                    std::cout<<"9999999999999999999999999\n";
                     //不需要管具体有什么类型转换，只需要判断是否可以cast然后在中间接上implicitcast节点
-                    if(canBeCasted(funcType,curType)&&funcType!=curType)
+                    //todo:about implicitcast, i'm not sure the rule is true
+                    //todo:maybe there should add conditions about lvalue and rvalue
+                    if(canBeCasted(funcType,curType))
                     {
-                        ImplicitCastExpr* curImplicit=new ImplicitCastExpr(funcType,E->getArg(0));
+                        ImplicitCastExpr* curImplicit=new ImplicitCastExpr(curType,E->getArg(0));
                         E->setArg(0,curImplicit);
                     }
-                    for(int j=0;j!=curFunc->getNumParams();++j)
+                    for(int j=0;j!=curFunc.getNumParams();++j)
                     {
-                        ParamVarDecl*D=curFunc->getParam(j);
+                        ParamVarDecl*D=curFunc.getParam(j);
                         QualType paraType = D->getQualType();
                         Expr* actualPara=E->getArg(j+1);
-                        if(canBeCasted(actualPara->getType(),paraType))
+                        if(canBeCasted(actualPara->getQualType(),paraType))
                         {
                             ImplicitCastExpr* curImplicit=new ImplicitCastExpr(paraType,actualPara);
                             E->setArg(j+1,curImplicit);
-                            std::cerr<<"there is a iii"<<std::endl;
                         }
                     }
+                    std::cout<<"A successful call "<<curName<<std::endl;
                     return true;
                 }
 
             }
         }
-        return true;
-    }
-    bool visitBinaryOperator(BinaryOperator* E)
-    {
-        std::cout<<"BinaryOperator\n";
+        std::cout<<"Error,an invalid call function on "<<funcName<<"\n";
         return true;
     }
     //判断第一个类型是否可以转化成第二个类型
@@ -264,6 +237,7 @@ public:
 
     }
     bool cleanupFunctionDecl(){
+        //todo:如果不想导出符号表，这里可以clear，就行fillreference那样
         tables.erase(tables.end()-1);
         return true;
     }
