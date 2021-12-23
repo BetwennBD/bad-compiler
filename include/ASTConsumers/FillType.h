@@ -195,5 +195,41 @@ public:
         equal=2;
         return b;
     }
+    bool visitSelectorArray(SelectorArray*E) {
+        //还要填充subexpr的类型
+        if(!E->hasSubExpr())
+        {
+            std::cout<<"Error, this SelectorArray doesn't hava a subexpr\n";
+            return true;
+        }
+        int numSelectors=E->getNumSelectors();
+        std::vector<Selector*> curSelectors=E->getSelectors();
+        Expr* curSub=E->getSubExpr();
+        QualType curQualType=curSub->getQualType();
+        for(int i=0;i!=numSelectors;++i)
+        {
+            Selector * curSelector=curSelectors[i];
+            switch (curSelector->getKind())
+            {
+                case Expr::k_DerefSelector:
+                {
+                    curQualType=*dynamic_cast<PointerType*>(curQualType.getType())->getPointeeType();
+                    break;
+                }
+                case Expr::k_IndexSelector:
+                {
+                    curQualType.setType(dynamic_cast<ArrayType*>(curQualType.getType())->getElementType());
+                    break;
+                }
+                case Expr::k_FieldSelector:
+                {
+                    //todo:struct待完善
+                    break;
+                }
+            }
+        }
+        E->setType(curQualType);
+        return false;
+    }
 };
 #endif //FRONTEND_FILLTYPE_H
