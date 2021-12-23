@@ -139,14 +139,7 @@ public:
         }
         if(flag)
         {
-            //若是函数，在这里就是它RetType
-            //std::cout<<"Fill DeclRefExpr's type: ";
             Type* t=curType.getType();
-            //std::cout<<curName<<" getTypeKind: ";
-            //short h=curType.getTypeKind();
-            //std::cout<<h<<"\n";
-            //std::cout<<curName<<" ";
-            //std::cout<<dynamic_cast<BuiltInType*> (t)->getTypeTypeAsString()<<"\n";
             E->setType(curType);
         }
         else
@@ -159,6 +152,26 @@ public:
             E->setType(newQualType);
         }
         return  true;
+    }
+    bool visitSelectorArray(SelectorArray*E) {
+        //现在就是要对E的QualType填充
+        /*
+        if(!E->hasSubExpr())
+        {
+            std::cout<<"Error, this SelectorArray doesn't hava a subexpr\n";
+            return true;
+        }
+        int numSelectors=E->getNumSelectors();
+        std::vector<Selector*> curSelectors=E->getSelectors();
+        for(int i=0;i!=numSelectors;++i)
+        {
+            Selector * curSelector=curSelectors[i];
+            switch (curSelector->getKind())
+            {
+
+            }
+        }
+         */
     }
     bool visitBinaryOperator(BinaryOperator* E)
     {

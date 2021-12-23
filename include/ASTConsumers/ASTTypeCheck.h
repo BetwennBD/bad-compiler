@@ -176,12 +176,15 @@ public:
                 //若函数参数全部匹配上了
                 if(flag)
                 {
-                    //不需要管具体有什么类型转换，只需要判断是否可以cast然后在中间接上implicitcast节点
-                    //todo:about implicitcast, i'm not sure the rule is true
-                    //todo:maybe there should add conditions about lvalue and rvalue
+                    //todo:不全或者有简化
                     if(canBeCasted(funcType,curType))
                     {
-                        ImplicitCastExpr* curImplicit=new ImplicitCastExpr(curType,E->getArg(0));
+                        //此处是函数转指针
+                        PointerType* imType=new PointerType(&curType);
+                        QualType imQualType(imType);
+                        CopyQual(curType,imQualType);
+                        std::cout<<"function implicit *************************\n";
+                        ImplicitCastExpr* curImplicit=new ImplicitCastExpr(imQualType,E->getArg(0));
                         E->setArg(0,curImplicit);
                     }
                     for(int j=0;j!=curFunc.getNumParams();++j)
@@ -191,8 +194,11 @@ public:
                         Expr* actualPara=E->getArg(j+1);
                         if(canBeCasted(actualPara->getQualType(),paraType))
                         {
+                            //左转右
                             ImplicitCastExpr* curImplicit=new ImplicitCastExpr(paraType,actualPara);
+                            curImplicit->setValueKind(ExprValueKind::RValue);
                             E->setArg(j+1,curImplicit);
+                            std::cout<<"para implicitcast****************\n";
                         }
                     }
                     std::cout<<"A successful call "<<curName<<std::endl;
@@ -235,6 +241,18 @@ public:
             }
         }
 
+    }
+    void CopyQual(QualType a,QualType b)
+    {
+        //前面的qualier给后面
+        if(a.isRestrict())
+            b.setRestrict();
+        if(a.isVolatile())
+            b.setVolatile();
+        if(a.isConst())
+            b.setConst();
+        if(a.isAtomic())
+            b.setAtomic();
     }
     bool cleanupFunctionDecl(){
         //todo:如果不想导出符号表，这里可以clear，就行fillreference那样

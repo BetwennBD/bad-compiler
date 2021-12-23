@@ -44,7 +44,7 @@ public:
             case UnaryOperator::_address_of:
             {
                 //todo:要考虑qualifier吗
-                QualType pointeeType=E->getSubExpr()->getType();
+                QualType pointeeType=E->getSubExpr()->getQualType();
                 PointerType*newType=new PointerType(&pointeeType);
                 QualType newQualtype(newType);
                 E->setType(newQualtype);
@@ -57,12 +57,12 @@ public:
             case UnaryOperator::_pre_inc:
             case UnaryOperator::_unary_minus:
             case UnaryOperator::_unary_plus:
-                E->setType(E->getSubExpr()->getType());
+                E->setType(E->getSubExpr()->getQualType());
                 break;
             case UnaryOperator::_indirection:
             {
                 //解引用，探究subexpr指向的变量
-                QualType actualType=E->getSubExpr()->getType();
+                QualType actualType=E->getSubExpr()->getQualType();
                 PointerType*p=dynamic_cast<PointerType*>(actualType.getType());
                 QualType pointeeType=*(p->getPointeeType());
                 E->setType(pointeeType);
@@ -81,8 +81,24 @@ public:
             case BinaryOperator::_div:
             case BinaryOperator::_mod:
             {
-                //todo:要考虑qualifier吗
-                E->setType(getLarger(E->getLHS()->getType(),E->getRHS()->getType()));
+                int equal=3;
+                QualType imQualType=getLarger(E->getLHS()->getQualType(),E->getRHS()->getQualType(),equal);
+                //binaryoperator的子节点是binaryoperator的情况下同样支持
+                if(equal==1||(E->getRHS()->getKind()==Stmt::k_DeclRefExpr&&E->getRHS()->isLValue()))
+                {
+                    ImplicitCastExpr* curImplicit=new ImplicitCastExpr(imQualType,E->getRHS());
+                    curImplicit->setValueKind(ExprValueKind::RValue);
+                    E->setRHS(curImplicit);
+                    std::cout<<"there is a impli in binary r************\n";
+                }
+                if(equal==2||(E->getLHS()->getKind()==Stmt::k_DeclRefExpr&&E->getLHS()->isLValue()))
+                {
+                    ImplicitCastExpr* curImplicit=new ImplicitCastExpr(imQualType,E->getLHS());
+                    curImplicit->setValueKind(ExprValueKind::RValue);
+                    std::cout<<"there is a impli in binary l**************\n";
+                    E->setLHS(curImplicit);
+                }
+                E->setType(imQualType);
                 break;
             }
             case BinaryOperator::_assign:
@@ -98,13 +114,35 @@ public:
             case BinaryOperator::_rsh_assign:
             {
                 //todo:要报错吗？可是类型之间都可以互相cast，有上面错可以报呢
-                //todo:除非左边不能被赋值，左右值的判别？
-                E->setType(E->getRHS()->getType());
+                int equal=0;
+                QualType imQualType=getLarger(E->getLHS()->getQualType(),E->getRHS()->getQualType(),equal);
+                if(equal!=0||(E->getRHS()->getKind()==Stmt::k_DeclRefExpr&&E->getRHS()->isLValue()))
+                {
+                    ImplicitCastExpr* curImplicit=
+                            new ImplicitCastExpr(E->getLHS()->getQualType(),E->getRHS());
+                    curImplicit->setValueKind(ExprValueKind::RValue);
+                    E->setRHS(curImplicit);
+                    std::cout<<"there is a impli in binary _f_assign*******\n";
+                }
+                E->setType(E->getLHS()->getQualType());
+                break;
+            }
+            case BinaryOperator::_eq:
+            case BinaryOperator::_neq:
+            case BinaryOperator::_lt:            // less than
+            case BinaryOperator::_gt:            // greater than
+            case BinaryOperator::_leq:
+            case BinaryOperator::_geq:
+            {
+                BuiltInType* newType=new BuiltInType(BuiltInType::_bool);
+                QualType newQualType(newType);
+                E->setType(newQualType);
+                E->setValueKind(ExprValueKind::RValue);
                 break;
             }
             default:
             {
-                E->setType(E->getRHS()->getType());
+                E->setType(E->getRHS()->getQualType());
                 break;
             }
         }
@@ -126,16 +164,35 @@ public:
         E->setType(newQualType);
         return true;
     }
-    //选占空间更大的数据类型返回
-    QualType getLarger(QualType a,QualType b)
+    bool visitStringLiteral(StringLiteral* E)
     {
+        ConstArrayType* newType=new ConstArrayType();
+        newType->setLength(E->getString().size()+1);
+        BuiltInType* eleType=new BuiltInType(BuiltInType::_char);
+        newType->setElementType(eleType);
+        QualType newQualType(newType);
+        newQualType.setConst();
+        E->setType(newQualType);
+        return true;
+    }
+    //选占空间更大的数据类型返回
+    QualType getLarger(QualType a,QualType b,int&equal)
+    {
+        //equal=0代表类型一样，=1代表和a类型一样，=2代表和b类型一样
+        //只针对builtintype,否则函数报错
         int space[8]={0,4,1,1,2,4,4,8};
         Type* atype=a.getType();
         Type* btype=b.getType();
         short anum=dynamic_cast<BuiltInType*> (atype)->getTypeType();
         short bnum=dynamic_cast<BuiltInType*> (btype)->getTypeType();
+        if(anum==bnum)
+            equal=0;
         if(space[anum]>=space[bnum])
+        {
+            equal=1;
             return a;
+        }
+        equal=2;
         return b;
     }
 };

@@ -26,9 +26,7 @@ public:
 
     void outType(QualType t)
     {
-        /*std::cout << "(";
-        std::string curQual;
-        std::string curType;
+       std::cout << "(";
         if(t.isAtomic())
            std::cout<<"atomic ";
         if(t.isConst())
@@ -38,18 +36,23 @@ public:
         if(t.isRestrict())
             std::cout<<"restrict ";
         Type*cType=t.getType();
+        std::string curType;
         if(cType->getKind()==Type::k_BuiltInType)
         {
             curType= dynamic_cast<BuiltInType*>(cType)->getTypeTypeAsString();
+            std::cout <<curType;
         }
         else if(cType->getKind()==Type::k_ArrayType)
-            //todo:要输出成 int[30]这种格式，后面记得改
-            curType="Array";
-        else if(cType->getKind()==Type::k_PointerType)
-            curType="Pointer";
-        std::cout <<curType;
-        std::cout << ")";*/
-        std::cout<<"( type )";
+        {
+            std::cout<<"]";
+            //todo:格局小了
+            Type *eleType= dynamic_cast<ConstArrayType*>(cType)->getElementType();
+            std::cout<< dynamic_cast<BuiltInType*>(eleType)->getTypeTypeAsString()<<"[";
+            std::cout<< dynamic_cast<ConstArrayType*>(cType)->getLength();
+            std::cout<<"]";
+        }
+        else
+           std::cout << ")";
     }
 
     bool visitTranslationUnitDecl(TranslationUnitDecl *D) {
@@ -243,7 +246,7 @@ public:
         outSpace();
         recordLevel.push(S);
         std::cout << "DeclRefExpr " << "[" << S->getRefName() << "] ";
-         outType(S->getQualType());
+        outType(S->getQualType());
         std::cout << "\n";
         return true;
     }

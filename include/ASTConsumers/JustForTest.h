@@ -28,9 +28,9 @@ public:
     bool visitDeclRefExpr(DeclRefExpr*E)
     {
         std::cout<<"DeclRefExpr  ";
-        QualType qt=E->getType();
+        QualType qt=E->getQualType();
         Type* t=qt.getType();
-        std::cout<<E->getRefname()<<" ";
+        std::cout<<E->getRefName()<<" ";
         std::cout<<dynamic_cast<BuiltInType*> (t)->getTypeTypeAsString()<<"\n";
         return true;
     }
@@ -47,7 +47,7 @@ public:
                 " _bit_not",           // ~
                 "_unary_plus",        // +
                         "_unary_minus" };
-        QualType qt=E->getType();
+        QualType qt=E->getQualType();
         Type* t=qt.getType();
         std::cout<<"UnaryOperator "<<opnum[E->getOp()]<<" ";
         std::cout<<dynamic_cast<BuiltInType*> (t)->getTypeTypeAsString()<<"\n";
@@ -84,7 +84,7 @@ public:
                                 "_xor_assign",
                                 "_lsh_assign",
                                 "_rsh_assign"};
-        QualType qt=E->getType();
+        QualType qt=E->getQualType();
         Type* t=qt.getType();
         std::cout<<"BinaryOperator "<<opnum[E->getOp()]<<" ";
         std::cout<<dynamic_cast<BuiltInType*> (t)->getTypeTypeAsString()<<"\n";
@@ -92,7 +92,7 @@ public:
     }
     bool visitIntegerLiteral(IntegerLiteral* E)
     {
-        QualType qt=E->getType();
+        QualType qt=E->getQualType();
         Type* t=qt.getType();
         std::cout<<"IntegerLiteral ";
         std::cout<<dynamic_cast<BuiltInType*> (t)->getTypeTypeAsString()<<" ";
@@ -101,7 +101,7 @@ public:
     }
     bool visitFloatingLiteral(FloatingLiteral* E)
     {
-        QualType qt=E->getType();
+        QualType qt=E->getQualType();
         Type* t=qt.getType();
         std::cout<<"FloatingLiteral ";
         std::cout<<dynamic_cast<BuiltInType*> (t)->getTypeTypeAsString()<<" ";
