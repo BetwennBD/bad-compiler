@@ -7,6 +7,8 @@
 
 #include <stack>
 #include<iostream>
+#include<cstdlib>
+#include<cstdio>
 #include "include/AST/RecursiveASTVisitor.h"
 
 class ASTDumper : public RecursiveASTVisitor<ASTDumper> {
@@ -23,10 +25,68 @@ public:
             std::cout << " ";
         std::cout << "| ";
     }
-
+    void outForSA(SelectorArray* E)
+    {
+        //输出格式: int [30], *(students[t].name)
+        std::string outFormat="";
+        int numSelectors=E->getNumSelectors();
+        std::vector<Selector*> curSelectors=E->getSelectors();
+        //大概率是个declrefexpr，有name，输出students
+        Expr* curSub=E->getSubExpr();
+        if(curSub->getKind()==Expr::k_DeclRefExpr)
+        {
+            outFormat+= dynamic_cast<DeclRefExpr*>(curSub)->getRefName();
+        }
+        QualType curQualType=curSub->getQualType();
+        for(int i=0;i!=numSelectors;++i)
+        {
+            Selector * curSelector=curSelectors[i];
+            switch (curSelector->getKind())
+            {
+                case Expr::k_DerefSelector:
+                {
+                    outFormat="*("+outFormat+")";
+                    break;
+                }
+                case Expr::k_IndexSelector:
+                {
+                    char* indexchars;
+                    std::string myindex;
+                    Expr * indexExpr=dynamic_cast<IndexSelector*>(curSelector)->getIdxExpr();
+                    if(indexExpr->getKind()==Expr::k_IntegerLiteral)
+                    {
+                       itoa(dynamic_cast<IntegerLiteral*>(indexExpr)->getValue(),indexchars,10);
+                    }
+                    else if(indexExpr->getKind()==Expr::k_DeclRefExpr)
+                    {
+                        myindex= dynamic_cast<DeclRefExpr*>(indexExpr)->getRefName();
+                    }
+                    else
+                    {
+                        myindex="expr";
+                    }
+                    myindex=indexchars;
+                    outFormat+="["+myindex+"]";
+                    break;
+                }
+                case Expr::k_FieldSelector:
+                {
+                    outFormat=outFormat+"."+ dynamic_cast<FieldSelector*>(curSelector)->getName();
+                    break;
+                }
+            }
+        }
+       std::cout<<"("<<outFormat<<")";
+    }
     void outType(QualType t)
     {
        std::cout << "(";
+        Type*cType=t.getType();
+        if(cType==nullptr)
+        {
+            std::cout<<"null)\n";
+            return;
+        }
         if(t.isAtomic())
            std::cout<<"atomic ";
         if(t.isConst())
@@ -35,10 +95,10 @@ public:
             std::cout<<"volatile ";
         if(t.isRestrict())
             std::cout<<"restrict ";
-        Type*cType=t.getType();
         std::string curType;
         if(cType->getKind()==Type::k_BuiltInType)
         {
+            std::cout<<"builtintype ";
             curType= dynamic_cast<BuiltInType*>(cType)->getTypeTypeAsString();
             std::cout <<curType;
         }
@@ -52,7 +112,10 @@ public:
             std::cout<<"]";
         }
         else
-           std::cout << ")";
+        {
+            std::cout<<"type";
+        }
+        std::cout << ")";
     }
 
     bool visitTranslationUnitDecl(TranslationUnitDecl *D) {
@@ -85,6 +148,19 @@ public:
         return true;
     }
     bool cleanupDeclaratorDecl(){
+        recordLevel.pop();
+        return true;
+    }
+    bool visitSelectorArray(SelectorArray* D)
+    {
+        outSpace();
+        recordLevel.push(D);
+        std::cout << "SelectorArray " ;
+        outForSA(D);
+        std::cout << "\n";
+        return true;
+    }
+    bool cleanupSelectorArray(){
         recordLevel.pop();
         return true;
     }
@@ -205,9 +281,14 @@ public:
     }
     bool visitUnaryOperator(UnaryOperator* S)
     {
+        //觉得多余可删
+        std::string opnum[10]={ "_pre_inc","_post_inc"," _pre_dec",
+                                " _post_dec","_address_of"," _indirection"," _not"," _bit_not",
+                                "_unary_plus","_unary_minus" };
         outSpace();
         recordLevel.push(S);
-        std::cout << "UnaryOperator " << "[Op#" << S->getOp() << "] ";
+        //std::cout << "UnaryOperator " << "[Op#" << S->getOp() << "] ";
+        std::cout << "UnaryOperator " << "[" << opnum[S->getOp()] << "] ";
         outType(S->getQualType());
         std::cout << "\n";
         return true;
@@ -218,9 +299,16 @@ public:
     }
     bool visitBinaryOperator(BinaryOperator* S)
     {
+        //觉得多余可删
+        std::string opnum[29]={ "_add","_sub","_mul","_div","_mod","_and","_or","_xor",
+                                "_lsh"," _rsh","_eq","_ne","_lt","_gt","_le","_ge","_log_and",
+                                "_log_or","_assign","_add_assign","_sub_assign","_mul_assign",
+                                "_div_assign","_mod_assign","_and_assign","_or_assign",
+                                "_xor_assign","_lsh_assign","_rsh_assign"};
         outSpace();
         recordLevel.push(S);
-        std::cout << "BinaryOperator " << "[Op#" << S->getOp() << "] ";
+        //std::cout << "BinaryOperator " << "[Op#" << S->getOp() << "] ";
+        std::cout << "BinaryOperator " << "[" << opnum[S->getOp()] << "] ";
          outType(S->getQualType());
         std::cout << "\n";
         return true;

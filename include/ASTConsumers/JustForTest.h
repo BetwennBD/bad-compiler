@@ -37,16 +37,9 @@ public:
 
     bool visitUnaryOperator(UnaryOperator* E)
     {
-       std::string opnum[10]={ "_pre_inc",
-                        "_post_inc",
-                        " _pre_dec",
-                " _post_dec",
-                "_address_of",        // &
-                " _indirection",       // *
-                " _not",               // !
-                " _bit_not",           // ~
-                "_unary_plus",        // +
-                        "_unary_minus" };
+       std::string opnum[10]={ "_pre_inc","_post_inc"," _pre_dec",
+                " _post_dec","_address_of"," _indirection"," _not"," _bit_not",
+                "_unary_plus","_unary_minus" };
         QualType qt=E->getQualType();
         Type* t=qt.getType();
         std::cout<<"UnaryOperator "<<opnum[E->getOp()]<<" ";
@@ -55,35 +48,11 @@ public:
     }
     bool visitBinaryOperator(BinaryOperator* E)
     {
-        std::string opnum[29]={ "_add",
-                                "_sub",
-                                "_mul",
-                                "_div",
-                                "_mod",
-                                "_and",
-                                "_or",
-                                "_xor",
-                                "_lsh",           // left shift
-                                " _rsh",           // right shift
-                                "_eq",
-                                "_ne",
-                                "_lt",            // less than
-                                "_gt",            // greater than
-                                "_le",
-                                "_ge",
-                                "_log_and",
-                                "_log_or",
-                                "_assign",
-                                "_add_assign",
-                                "_sub_assign",
-                                "_mul_assign",
-                                "_div_assign",
-                                "_mod_assign",
-                                "_and_assign",
-                                "_or_assign",
-                                "_xor_assign",
-                                "_lsh_assign",
-                                "_rsh_assign"};
+        std::string opnum[29]={ "_add","_sub","_mul","_div","_mod","_and","_or","_xor",
+                                "_lsh"," _rsh","_eq","_ne","_lt","_gt","_le","_ge","_log_and",
+                                "_log_or","_assign","_add_assign","_sub_assign","_mul_assign",
+                                "_div_assign","_mod_assign","_and_assign","_or_assign",
+                                "_xor_assign","_lsh_assign","_rsh_assign"};
         QualType qt=E->getQualType();
         Type* t=qt.getType();
         std::cout<<"BinaryOperator "<<opnum[E->getOp()]<<" ";

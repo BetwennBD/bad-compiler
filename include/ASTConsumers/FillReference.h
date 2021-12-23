@@ -39,7 +39,9 @@ public:
          short h=D->getQualType().getTypeKind();
         //变量声明，考虑了全局和局部两种情况
         std::string curName=D->getName();
+        std::cout<<curName<<" now in vardecl \n";
         QualType curType=D->getQualType();
+        std::cout<<curName<<" "<<(short)curType.getType()->getKind()<<" **\n";
         if(fornum==fornew)
         {
             if (tables.empty())
@@ -153,26 +155,7 @@ public:
         }
         return  true;
     }
-    bool visitSelectorArray(SelectorArray*E) {
-        //现在就是要对E的QualType填充
-        /*
-        if(!E->hasSubExpr())
-        {
-            std::cout<<"Error, this SelectorArray doesn't hava a subexpr\n";
-            return true;
-        }
-        int numSelectors=E->getNumSelectors();
-        std::vector<Selector*> curSelectors=E->getSelectors();
-        for(int i=0;i!=numSelectors;++i)
-        {
-            Selector * curSelector=curSelectors[i];
-            switch (curSelector->getKind())
-            {
 
-            }
-        }
-         */
-    }
     bool visitBinaryOperator(BinaryOperator* E)
     {
         return true;
