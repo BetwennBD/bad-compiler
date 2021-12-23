@@ -559,11 +559,12 @@ void ASTBuilder::quitArray(CSTNode *node) {
         // 数组部分还未检查
         // 如果数组部分出错
         // 此处为最有可能出错的地方
-        Type *oldType = dynamic_cast<VarDecl*>(parent)->getQualType().getType();
+        QualType oldQualType = dynamic_cast<VarDecl*>(parent)->getQualType();
         VariableArrayType *newType = dynamic_cast<VariableArrayType*>(pQualType->getType());
-        assert(oldType && newType);
-        newType->setElementType(oldType);
-        oldType = newType;
+        assert(newType);
+        newType->setElementType(oldQualType.getType());
+        oldQualType.setType(newType);
+        dynamic_cast<VarDecl*>(parent)->setQualType(oldQualType);
 
         if(hasStoreName) {
             dynamic_cast<VarDecl*>(parent)->setName(storedName);
@@ -573,17 +574,25 @@ void ASTBuilder::quitArray(CSTNode *node) {
         return;
     }
     if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_ParamVarDecl) {
-        Type *oldType = dynamic_cast<ParamVarDecl*>(parent)->getQualType().getType();
+        QualType oldQualType = dynamic_cast<ParamVarDecl*>(parent)->getQualType();
         VariableArrayType *newType = dynamic_cast<VariableArrayType*>(pQualType->getType());
-        assert(oldType && newType);
-        newType->setElementType(oldType);
-        oldType = newType;
+        assert(newType);
+        newType->setElementType(oldQualType.getType());
+        oldQualType.setType(newType);
+        dynamic_cast<ParamVarDecl*>(parent)->setQualType(oldQualType);
 
         if(hasStoreName) {
             dynamic_cast<VarDecl*>(parent)->setName(storedName);
             hasStoreName = false;
         }
 
+        return;
+    }
+    //Fixme:
+    // 急着洗澡，写得仓促，可能有错
+    if(parent->isQualType() && dynamic_cast<QualType*>(parent)->getTypeKind() == Type::k_VariableArrayType) {
+        // 这里假设不会是incompleteType
+        dynamic_cast<QualType*>(parent)->setType(pQualType->getType());
         return;
     }
 
@@ -605,11 +614,12 @@ void ASTBuilder::quitStaticModifierArray(CSTNode *node) {
 
     AbstractASTNode *parent = nodeStack.top();
     if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_VarDecl) {
-        Type *oldType = dynamic_cast<VarDecl*>(parent)->getQualType().getType();
+        QualType oldQualType = dynamic_cast<VarDecl*>(parent)->getQualType();
         VariableArrayType *newType = dynamic_cast<VariableArrayType*>(pQualType->getType());
-        assert(oldType && newType);
-        newType->setElementType(oldType);
-        oldType = newType;
+        assert(newType);
+        newType->setElementType(oldQualType.getType());
+        oldQualType.setType(newType);
+        dynamic_cast<VarDecl*>(parent)->setQualType(oldQualType);
 
         if(hasStoreName) {
             dynamic_cast<VarDecl*>(parent)->setName(storedName);
@@ -619,17 +629,23 @@ void ASTBuilder::quitStaticModifierArray(CSTNode *node) {
         return;
     }
     if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_ParamVarDecl) {
-        Type *oldType = dynamic_cast<ParamVarDecl*>(parent)->getQualType().getType();
+        QualType oldQualType = dynamic_cast<ParamVarDecl*>(parent)->getQualType();
         VariableArrayType *newType = dynamic_cast<VariableArrayType*>(pQualType->getType());
-        assert(oldType && newType);
-        newType->setElementType(oldType);
-        oldType = newType;
+        assert(newType);
+        newType->setElementType(oldQualType.getType());
+        oldQualType.setType(newType);
+        dynamic_cast<ParamVarDecl*>(parent)->setQualType(oldQualType);
 
         if(hasStoreName) {
             dynamic_cast<VarDecl*>(parent)->setName(storedName);
             hasStoreName = false;
         }
 
+        return;
+    }
+    if(parent->isQualType() && dynamic_cast<QualType*>(parent)->getTypeKind() == Type::k_VariableArrayType) {
+        // 这里假设不会是incompleteType
+        dynamic_cast<QualType*>(parent)->setType(pQualType->getType());
         return;
     }
 
@@ -650,11 +666,12 @@ void ASTBuilder::quitIncompleteArray(CSTNode *node) {
 
     AbstractASTNode *parent = nodeStack.top();
     if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_VarDecl) {
-        Type *oldType = dynamic_cast<VarDecl*>(parent)->getQualType().getType();
-        VariableArrayType *newType = dynamic_cast<VariableArrayType*>(pQualType->getType());
-        assert(oldType && newType);
-        newType->setElementType(oldType);
-        oldType = newType;
+        QualType oldQualType = dynamic_cast<VarDecl*>(parent)->getQualType();
+        IncompleteArrayType *newType = dynamic_cast<IncompleteArrayType*>(pQualType->getType());
+        assert(newType);
+        newType->setElementType(oldQualType.getType());
+        oldQualType.setType(newType);
+        dynamic_cast<VarDecl*>(parent)->setQualType(oldQualType);
 
         if(hasStoreName) {
             dynamic_cast<VarDecl*>(parent)->setName(storedName);
@@ -664,11 +681,12 @@ void ASTBuilder::quitIncompleteArray(CSTNode *node) {
         return;
     }
     if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_ParamVarDecl) {
-        Type *oldType = dynamic_cast<ParamVarDecl*>(parent)->getQualType().getType();
+        QualType oldQualType = dynamic_cast<ParamVarDecl*>(parent)->getQualType();
         IncompleteArrayType *newType = dynamic_cast<IncompleteArrayType*>(pQualType->getType());
-        assert(oldType && newType);
-        newType->setElementType(oldType);
-        oldType = newType;
+        assert(newType);
+        newType->setElementType(oldQualType.getType());
+        oldQualType.setType(newType);
+        dynamic_cast<ParamVarDecl*>(parent)->setQualType(oldQualType);
 
         if(hasStoreName) {
             dynamic_cast<VarDecl*>(parent)->setName(storedName);
