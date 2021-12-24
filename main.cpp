@@ -34,7 +34,6 @@ int main() {
     CSTBuilder cstBuilder(&lalrConstructor, &grammarSet);
     //std::vector<LexUnit> testVec = constructTestCase("../etc/tokens4.txt");
     Lexer mylex("../etc/source.txt");
-    std::cout<<"get lex ";
     std::vector<LexUnit> testVec=mylex.getAnalysis();
 
     CSTNode *head = cstBuilder.constructCST(testVec, 0);

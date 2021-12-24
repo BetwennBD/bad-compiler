@@ -253,21 +253,14 @@ DEF_TRAVERSE_STMT(UnaryOperator, {
 
 DEF_TRAVERSE_STMT(Selector, {})
 
-DEF_TRAVERSE_STMT(DerefSelector, {
-    assert(S->hasSubExpr());
-    traverseExprHelper(S->getSubExpr(), "DerefSelector");
-})
+DEF_TRAVERSE_STMT(DerefSelector, {})
 
 DEF_TRAVERSE_STMT(IndexSelector, {
-    assert(S->hasSubExpr() && S->hasIdxExpr());
-    traverseExprHelper(S->getSubExpr(), "IndexSelector");
+    assert(S->hasIdxExpr());
     traverseExprHelper(S->getIdxExpr(), "IndexSelector");
 })
 
-DEF_TRAVERSE_STMT(FieldSelector, {
-    assert(S->hasSubExpr());
-    traverseExprHelper(S->getSubExpr(), "FieldSelector");
-})
+DEF_TRAVERSE_STMT(FieldSelector, {})
 
 DEF_TRAVERSE_STMT(SelectorArray, {
     assert(S->hasSubExpr());
