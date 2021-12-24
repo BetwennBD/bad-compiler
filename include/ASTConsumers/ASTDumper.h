@@ -80,6 +80,8 @@ public:
     }
     void outType(QualType t)
     {
+        std::cout<<"(type)";
+        return;
        std::cout << "(";
         Type*cType=t.getType();
         if(cType==nullptr)
@@ -98,14 +100,32 @@ public:
         std::string curType;
         if(cType->getKind()==Type::k_BuiltInType)
         {
-            std::cout<<"builtintype ";
             curType= dynamic_cast<BuiltInType*>(cType)->getTypeTypeAsString();
             std::cout <<curType;
         }
-        else if(cType->getKind()==Type::k_ArrayType)
+        else if(cType->getKind()==Type::k_IncompleteArrayType)
         {
-            std::cout<<"]";
-            //todo:格局小了
+            std::cout<<"it is incomlete";
+            /*if(dynamic_cast<IncompleteArrayType*>(cType)->getElementType()== nullptr)
+            {
+                std::cout<<"its element\n";
+                return;
+            }
+            Type *eleType= dynamic_cast<IncompleteArrayType*>(cType)->getElementType();
+            if(dynamic_cast<IncompleteArrayType*>(cType)->getElementType()== nullptr)
+            {
+                std::cout<<"its element type is nullptr\n";
+                return;
+            }
+            std::cout<< dynamic_cast<BuiltInType*>(eleType)->getTypeTypeAsString()<<"[]";*/
+        }
+        else if(cType->getKind()==Type::k_VariableArrayType)
+        {
+            Type *eleType= dynamic_cast<VariableArrayType*>(cType)->getElementType();
+            std::cout<< dynamic_cast<BuiltInType*>(eleType)->getTypeTypeAsString()<<"[expr]";
+        }
+        else if(cType->getKind()==Type::k_ConstArrayType)
+        {
             Type *eleType= dynamic_cast<ConstArrayType*>(cType)->getElementType();
             std::cout<< dynamic_cast<BuiltInType*>(eleType)->getTypeTypeAsString()<<"[";
             std::cout<< dynamic_cast<ConstArrayType*>(cType)->getLength();

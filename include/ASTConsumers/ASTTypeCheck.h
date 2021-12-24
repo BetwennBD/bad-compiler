@@ -256,6 +256,7 @@ public:
     }
     bool cleanupFunctionDecl(){
         //todo:如果不想导出符号表，这里可以clear，就行fillreference那样
+        tables[tables.size()-1]->clearSymbolTable();
         tables.erase(tables.end()-1);
         return true;
     }
