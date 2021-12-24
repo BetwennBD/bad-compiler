@@ -39,9 +39,7 @@ public:
          short h=D->getQualType().getTypeKind();
         //变量声明，考虑了全局和局部两种情况
         std::string curName=D->getName();
-        std::cout<<curName<<" now in vardecl \n";
         QualType curType=D->getQualType();
-        std::cout<<curName<<" "<<(short)curType.getType()->getKind()<<" **\n";
         if(fornum==fornew)
         {
             if (tables.empty())
@@ -109,6 +107,7 @@ public:
         //这里是根据引用的原信息填充它的类型，不涉及检查类型
         bool flag=true;
         std::string curName=E->getRefName();
+        std::cout<<"now in declref, "<<curName<<"\n";
         ValueDecl* v=E->getValueDecl();
         QualType curType;
         curFunction=tables[tables.size()-1];
@@ -142,6 +141,7 @@ public:
         if(flag)
         {
             Type* t=curType.getType();
+            std::cout<<"now in declrefexpr, the typekind is "<<short(t->getKind())<<"**\n";
             E->setType(curType);
         }
         else
