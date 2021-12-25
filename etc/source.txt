@@ -1,6 +1,8 @@
-int main() {
-  int apples[5];
+int main(int argc, char *argv[])
+{
+  int a = 2;
+  float apples[5];
   apples[a] = a;
-  return 0;
+  apples[0] = 1.7;
 }
 #
