@@ -35,12 +35,13 @@ int main() {
     //std::vector<LexUnit> testVec = constructTestCase("../etc/tokens4.txt");
     Lexer mylex("../etc/source.txt");
     std::vector<LexUnit> testVec=mylex.getAnalysis();
-    testVec = constructTestCase("../etc/tokens4.txt");
+//    testVec = constructTestCase("../etc/tokens4.txt");
 
     CSTNode *head = cstBuilder.constructCST(testVec, 0);
 
     if(head == NULL)
         std::cout << "create CST failed";
+//    printCST(head, 0);
 
     ASTBuilder astBuilder;
     TranslationUnitDecl* translationUnitDecl = astBuilder.constructAST(head);
@@ -48,6 +49,7 @@ int main() {
         std::cout << "create AST failed";
     FillReference fillReference;
     fillReference.traverseTranslationUnitDecl(translationUnitDecl);
+    return 0;
     FillType fillType;
     fillType.traverseTranslationUnitDecl(translationUnitDecl);
     ASTDumper astDumper;

@@ -135,7 +135,13 @@ DEF_TRAVERSE_DECL(NamedDecl, {})
 
 DEF_TRAVERSE_DECL(TypeDecl, {})
 
-DEF_TRAVERSE_DECL(RecordDecl, {})
+DEF_TRAVERSE_DECL(RecordDecl, {
+    for(auto declStmt : D->declStmts) {
+        traverseDeclStmt(declStmt);
+    }
+})
+
+DEF_TRAVERSE_DECL(EnumDecl, {})
 
 DEF_TRAVERSE_DECL(ValueDecl, {})
 
@@ -188,8 +194,15 @@ DEF_TRAVERSE_STMT(CompoundStmt, {
 })
 
 DEF_TRAVERSE_STMT(DeclStmt, {
-    int tempNumDecls = S->getNumDecls();
+    if(S->hasTypeDecl())  {
+        switch(S->getTypeDecl()->getKind()) {
+            case(Decl::k_RecordDecl):
+                traverseRecordDecl(dynamic_cast<RecordDecl*>(S->getTypeDecl()));
+                break;
+        }
+    }
     Decl *decl;
+    int tempNumDecls = S->getNumDecls();
     for(int i = 0;i < tempNumDecls;++i) {
         decl = S->getDecl(i);
         switch(decl->getKind()) {

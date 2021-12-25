@@ -25,6 +25,9 @@ public:
         k_ConstArrayType,
         k_VariableArrayType,
         k_IncompleteArrayType,
+        k_RecordType,
+        k_EnumType,
+        k_UnknownType,
         first_ArrayType = k_ArrayType,
         last_ArrayType = k_IncompleteArrayType
     };
@@ -158,6 +161,7 @@ public:
     enum TypeEnum : short {
         _void,
         _int,
+        _unsigned,
         _char,
         _bool,
         _short,
@@ -180,6 +184,7 @@ public:
         switch(typeEnum) {
             case(_void):      return "void";
             case(_int):       return "int";
+            case(_unsigned):  return "unsigned";
             case(_char):      return "char";
             case(_bool):      return "bool";
             case(_short):     return "short";
@@ -299,6 +304,85 @@ public:
     Expr* getSizeExpr() const { return sizeExpr; }
 
     void setSizeExpr(Expr *_sizeExpr) { sizeExpr = _sizeExpr; }
+};
+
+class RecordType : public Type {
+public:
+    std::vector<QualType> members;
+    bool isS;
+
+    RecordType()
+    : Type() {
+        typeKind = k_RecordType;
+        isS = 1;
+    }
+
+    RecordType( bool _isS )
+    : Type() {
+        typeKind = k_RecordType;
+        isS = _isS;
+    }
+
+    int getNumMembers() const { return members.size(); }
+
+    QualType getMember( int pos ) {
+        assert(pos < members.size());
+        return members[pos];
+    }
+
+    void addMember(QualType _qualType) { members.emplace_back(_qualType); }
+
+    bool isStruct() const { return isS ; }
+
+    bool isUnion() const { return !isS ; }
+
+    void setStruct() { isS = 1; }
+
+    void setUnion() { isS = 0; }
+};
+
+class EnumType : public Type {
+public:
+    std::vector<std::pair<std::string, int>> members;
+
+    EnumType()
+    : Type() {
+        typeKind = k_EnumType;
+    }
+
+    int getNumMembers() const { return members.size(); }
+
+    std::pair<std::string, int> getMember( int pos ) {
+        assert(pos < members.size());
+        return members[pos];
+    }
+
+    void addMember(std::string _name, int _value) {
+        members.emplace_back(std::make_pair(_name, _value));
+    }
+};
+
+class UnknownType : public Type {
+public:
+    std::string name;
+
+    UnknownType()
+    : Type() {
+        typeKind = k_UnknownType;
+        name = "";
+    }
+
+    UnknownType( std::string _name )
+    : Type() {
+        typeKind = k_UnknownType;
+        name = _name;
+    }
+
+    std::string getName() const { return name; }
+
+    void setName( std::string _name ) { name = _name; }
+
+    bool hasName() const { return name != ""; }
 };
 
 #endif //FRONTEND_TYPE_H

@@ -93,24 +93,30 @@ public:
 
 class DeclStmt : public Stmt {
 public:
-    //Fixme:
-    // 这里Decl或许应该改成更高级别的派生类
-    std::vector< VarDecl* > decls;
+    std::vector< VarDecl* > varDecls;
+    TypeDecl *typeDecl;
 
     DeclStmt()
     : Stmt() {
         stmtKind = k_DeclStmt;
-        decls.resize(0);
+        varDecls.resize(0);
+        typeDecl = nullptr;
     }
 
-    int getNumDecls() const { return decls.size(); }
+    int getNumDecls() const { return varDecls.size(); }
 
     VarDecl* getDecl(int pos) {
-        assert(pos < decls.size() && "Asking for decl out of bound.");
-        return decls[pos];
+        assert(pos < varDecls.size() && "Asking for decl out of bound.");
+        return varDecls[pos];
     }
 
-    void addDecl( VarDecl *decl ) { decls.emplace_back(decl); }
+    void addDecl( VarDecl *decl ) { varDecls.emplace_back(decl); }
+
+    TypeDecl* getTypeDecl() { return typeDecl; }
+
+    void setTypeDecl( TypeDecl *_typeDecl ) { typeDecl = _typeDecl; }
+
+    bool hasTypeDecl() const { return typeDecl != nullptr; }
 };
 
 class WhileStmt : public Stmt {

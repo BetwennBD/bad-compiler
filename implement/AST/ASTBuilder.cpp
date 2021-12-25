@@ -137,10 +137,17 @@ void ASTBuilder::enterSelector(CSTNode *node) {
     }
     else if(node->getChildren()[1]->getType() == ".") {
         FieldSelector *fieldSelector = new FieldSelector();
+        assert(node->getChildren()[2]->isTerminal());
+        fieldSelector->setName(node->getChildren()[2]->getId());
         selectorArray->addSelector(fieldSelector);
     }
     else if(node->getChildren()[1]->getType() == "PTR_OP") {
-        assert(0 && "In enterSelector: temporarily do not support PTR_OP");
+        DerefSelector *derefSelector = new DerefSelector();
+        selectorArray->addSelector(derefSelector);
+        FieldSelector *fieldSelector = new FieldSelector();
+        assert(node->getChildren()[2]->isTerminal());
+        fieldSelector->setName(node->getChildren()[2]->getId());
+        selectorArray->addSelector(fieldSelector);
     }
     else {
         assert(0 && "In enterSelector: invalid selector type");
@@ -156,17 +163,14 @@ void ASTBuilder::quitSelector(CSTNode *node) {
         if(auto tempStmt = dynamic_cast<DerefSelector*>(nodeStack.top())) {
             pSelectorArray->addSelector(dynamic_cast<DerefSelector*>(tempStmt));
             nodeStack.pop();
-            delete tempStmt;
         }
         else if(auto tempStmt = dynamic_cast<SelectorArray*>(nodeStack.top())) {
-            // 这里假设若其上方有SelectorArray，则仅有一个selector
-            // 所以加入后pSelectorArray直接用当前SelectorArray替换
-            assert(tempStmt->getSelectors().size() == 1);
+            // 父节点加入pSelectorArray后直接用当前SelectorArray替换
             for(auto selector : tempStmt->getSelectors())
                 pSelectorArray->addSelector(selector);
-            delete tempStmt;
             nodeStack.pop();
-            tempStmt = pSelectorArray;
+            delete tempStmt;
+            nodeStack.push(pSelectorArray);
             return;
         }
         else break;
@@ -327,6 +331,11 @@ void ASTBuilder::enterDeclaration(CSTNode *node) {
 void ASTBuilder::quitDeclaration(CSTNode *node) {
     SEC_GET_STMT(DeclStmt);
 
+    if(typeDeclCp) {
+        pDeclStmt->setTypeDecl(typeDeclCp);
+        typeDeclCp = nullptr;
+    }
+
     AbstractASTNode *parent = nodeStack.top();
     // 取消进入语句时定义的全局类型拷贝
     declTypeCp = QualType();
@@ -346,11 +355,115 @@ void ASTBuilder::quitDeclaration(CSTNode *node) {
     raiseRuleViolation("Declaration", parent);
 }
 
+// 处理结构体定义
+void ASTBuilder::enterRecordDeclaration(CSTNode *node) {
+    RecordDecl *recordDecl = new RecordDecl();
+    // 有tag
+    if(node->getChildren()[1]->getType() == "IDENTIFIER") {
+        assert(node->getChildren()[1]->isTerminal());
+        recordDecl->setName(node->getChildren()[1]->getId());
+    }
+
+    // 设置recordType
+    if(node->getChildren()[0]->getChildren()[0]->getType() == "STRUCT")
+        recordDecl->setStruct();
+    else if(node->getChildren()[0]->getChildren()[0]->getType() == "UNION")
+        recordDecl->setUnion();
+    else
+        assert(0 && "invalid record type");
+
+    nodeStack.push(recordDecl);
+}
+
+void ASTBuilder::quitRecordDeclaration(CSTNode *node) {
+    SEC_GET_DECL(RecordDecl)
+
+    AbstractASTNode *parent = nodeStack.top();
+    if(parent->isQualType()) {
+        UnknownType * unknownType = new UnknownType(pRecordDecl->getName());
+        dynamic_cast<QualType*>(parent)->setType(unknownType);
+        // 此处设置必须小心
+        // size等于2时，为:
+        // struct_or_union_specifier -> struct_or_union IDENTIFIER
+        if(node->getChildren().size() > 2)
+            typeDeclCp = pRecordDecl;
+        return;
+    }
+
+    raiseRuleViolation("RecordDeclaration", parent);
+}
+
+void ASTBuilder::enterDeclarationInRecord(CSTNode *node) {
+    DeclStmt *declStmt = new DeclStmt();
+    nodeStack.push(declStmt);
+}
+
+void ASTBuilder::quitDeclarationInRecord(CSTNode *node) {
+    SEC_GET_STMT(DeclStmt);
+
+    if(typeDeclCp) {
+        pDeclStmt->setTypeDecl(typeDeclCp);
+        typeDeclCp = nullptr;
+    }
+
+    AbstractASTNode *parent = nodeStack.top();
+    // 取消进入语句时定义的全局类型拷贝
+    declTypeCp = QualType();
+    if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_RecordDecl) {
+        dynamic_cast<RecordDecl*>(parent)->addDeclStmt(pDeclStmt);
+        return;
+    }
+
+    raiseRuleViolation("DeclarationInRecord", parent);
+}
+
+// 处理枚举类定义
+void ASTBuilder::enterEnumDeclaration(CSTNode *node) {
+    EnumDecl *enumDecl = new EnumDecl();
+    // 有tag
+    if(node->getChildren()[1]->getType() == "IDENTIFIER") {
+        assert(node->getChildren()[1]->isTerminal());
+        enumDecl->setName(node->getChildren()[1]->getId());
+    }
+
+    nodeStack.push(enumDecl);
+}
+
+void ASTBuilder::quitEnumDeclaration(CSTNode *node) {
+    SEC_GET_DECL(EnumDecl)
+
+    AbstractASTNode *parent = nodeStack.top();
+    if(parent->isQualType()) {
+        UnknownType * unknownType = new UnknownType(pEnumDecl->getName());
+        dynamic_cast<QualType*>(parent)->setType(unknownType);
+        // 此处设置必须小心
+        // size等于2时，为:
+        // enum_specifier -> ENUM IDENTIFIER
+        if(node->getChildren().size() > 2)
+            typeDeclCp = pEnumDecl;
+        return;
+    }
+
+    raiseRuleViolation("EnumDeclaration", parent);
+}
+
+// 此功能必须设置在enter，否则会晚于可能出现的值表达式
+void ASTBuilder::enterDeclarationInEnum(CSTNode *node) {
+    AbstractASTNode *parent = nodeStack.top();
+    if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_EnumDecl) {
+        assert(node->getChildren()[0]->getType() == "IDENTIFIER");
+        dynamic_cast<EnumDecl*>(parent)->addEnumerator(node->getChildren()[0]->getId(), nullptr);
+        return;
+    }
+
+    raiseRuleViolation("DeclarationInEnum", parent);
+}
+
+void ASTBuilder::quitDeclarationInEnum(CSTNode *node) {}
+
 // 处理基本类别(Int, Bool等)指示符
 void ASTBuilder::enterCommonSpName(CSTNode *node) {}
 
-//Fixme:
-// 对于这类节点，有没有更优雅的实现
 void ASTBuilder::quitCommonSpName(CSTNode *node) {
     assert(node->getChildren().size() == 1);
     CSTNode *pnode = node->getChildren()[0];
@@ -364,6 +477,10 @@ void ASTBuilder::quitCommonSpName(CSTNode *node) {
         }
         if (pnode->getType() == "INT") {
             dynamic_cast<QualType*>(parent)->setType(new BuiltInType(BuiltInType::_int));
+            return;
+        }
+        if (pnode->getType() == "UNSIGNED") {
+            dynamic_cast<QualType*>(parent)->setType(new BuiltInType(BuiltInType::_unsigned));
             return;
         }
         if (pnode->getType() == "CHAR") {
@@ -519,7 +636,7 @@ void ASTBuilder::quitDeclarator(CSTNode *node) {
         return;
     }
 
-    raiseRuleViolation("FuncDef", parent);
+    raiseRuleViolation("Declarator", parent);
 }
 
 // 为变量定义语句中的具体变量添加变量名
@@ -1038,10 +1155,6 @@ void ASTBuilder::exprCommonAction(AbstractASTNode *parent, Expr *pExpr, std::str
             if (auto tempIndexSelector = dynamic_cast<IndexSelector*>(tempSelector)) {
                 tempIndexSelector->setIdxExpr(pExpr);
             }
-            else if(auto tempFieldSelector = dynamic_cast<FieldSelector*>(tempSelector)) {
-                assert(pExpr->getKind() == Stmt::k_DeclRefExpr);
-                tempFieldSelector->setName(dynamic_cast<DeclRefExpr*>(pExpr)->getRefName());
-            }
         }
 
         return;
@@ -1080,6 +1193,12 @@ void ASTBuilder::exprCommonAction(AbstractASTNode *parent, Expr *pExpr, std::str
     }
     if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_VarDecl) {
         dynamic_cast<VarDecl*>(parent)->setInitializer(pExpr);
+        return;
+    }
+    // 为枚举类添加表达式
+    if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_EnumDecl) {
+        int numEnum = dynamic_cast<EnumDecl*>(parent)->getNumEnumerators();
+        dynamic_cast<EnumDecl*>(parent)->setEnumeratorExpr(numEnum - 1, pExpr);
         return;
     }
 

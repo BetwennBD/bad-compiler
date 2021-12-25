@@ -31,6 +31,7 @@
 // 避免循环引用
 class Stmt;
 class CompoundStmt;
+class DeclStmt;
 class Expr;
 class CastExpr;
 
@@ -53,6 +54,7 @@ public:
         k_NamedDecl,
         k_TypeDecl,
         k_RecordDecl,
+        k_EnumDecl,
         k_ValueDecl,
         k_DeclaratorDecl,
         k_FunctionDecl,
@@ -226,6 +228,7 @@ public:
         symbolTable.clear();
     }
 };
+
 class TranslationUnitDecl : public Decl, public GlobalContext {
 protected:
     std::vector< Decl* > decls;
@@ -283,24 +286,66 @@ public:
 
 class RecordDecl : public TypeDecl {
 public:
-    std::vector<std::pair<std::string, QualType>> members;
+    std::vector<DeclStmt*> declStmts;
+    bool isS;
 
 public:
     RecordDecl()
     : TypeDecl() {
         declKind = k_RecordDecl;
+        declStmts.resize(0);
+        isS = true;
     }
 
-    int getNumMembers() const { return members.size(); }
+    int getNumDeclStmts() const { return declStmts.size(); }
 
-    std::pair<std::string, QualType> getMember( int pos ) {
-        assert(pos < members.size());
-        return members[pos];
+    DeclStmt* getDeclStmt( int pos ) {
+        assert(pos < declStmts.size());
+        return declStmts[pos];
     }
 
-    void addMember(std::string _name, QualType _qualType) {
-        members.emplace_back(make_pair(_name, _qualType));
+    void addDeclStmt(DeclStmt *_declStmt) {
+        declStmts.emplace_back(_declStmt);
     }
+
+    bool hasTag() const { return name != ""; }
+
+    bool isStruct() const { return isS ; }
+
+    bool isUnion() const { return !isS; }
+
+    void setStruct() { isS = 1; }
+
+    void setUnion() { isS = 0; }
+};
+
+class EnumDecl : public TypeDecl {
+public:
+    std::vector<std::pair<std::string, Expr *>> enumerators;
+
+public:
+    EnumDecl()
+            : TypeDecl() {
+        declKind = k_EnumDecl;
+        enumerators.resize(0);
+    }
+
+    int getNumEnumerators() const { return enumerators.size(); }
+
+    std::pair<std::string, Expr *> getEnumerator( int pos ) {
+        assert(pos < enumerators.size());
+        return enumerators[pos];
+    }
+
+    void addEnumerator(std::string _name, Expr *_value) {
+        enumerators.emplace_back(std::make_pair(_name, _value));
+    }
+
+    void setEnumeratorExpr(int pos, Expr *_value) {
+        enumerators[pos].second = _value;
+    }
+
+    bool hasTag() const { return name != ""; }
 };
 
 class ValueDecl : public NamedDecl {

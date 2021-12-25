@@ -1,8 +1,12 @@
-int main(int argc, char *argv[])
-{
-  int a = 2;
-  float apples[5];
-  apples[a] = a;
-  apples[0] = 1.7;
+enum A {
+  a = 2 * 3,
+  b,
+  c
+};
+int main() {
+  const int a = 2;
+  int b = 8;
+  a = b;
+  return 0;
 }
 #

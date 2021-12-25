@@ -24,11 +24,17 @@ private:
     // 这时有必要将变量名暂存
     bool hasStoreName;
     std::string storedName;
+    // 当声明对象是struct，enum，union的时候
+    // 将其暂存，用于设置DeclStmt中的typeDecl
+    TypeDecl *typeDeclCp;
 
     void recursiveVisitCST( CSTNode* );
 
 public:
     ASTBuilder() {
+        hasStoreName = 0;
+        typeDeclCp = nullptr;
+
         opMap.clear();
         opMap.insert(std::make_pair("+", BinaryOperator::_add));
         opMap.insert(std::make_pair("-", BinaryOperator::_sub));

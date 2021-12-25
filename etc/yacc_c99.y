@@ -27,7 +27,7 @@ postfix_expression
 	| postfix_expression '(' ')'                                                    ## FuncCall
 	| postfix_expression '(' argument_expression_list ')'                           ## FuncCall
 	| postfix_expression '.' IDENTIFIER                                             ## Selector
-	| postfix_expression PTR_OP IDENTIFIER
+	| postfix_expression PTR_OP IDENTIFIER                                          ## Selector
 	| postfix_expression INC_OP                                                     ## PostOp
 	| postfix_expression DEC_OP                                                     ## PostOp
 	| '(' type_name ')' '{' initializer_list '}'
@@ -162,9 +162,9 @@ declaration_specifiers
 	: storage_class_specifier
 	| storage_class_specifier declaration_specifiers
 	| type_specifier                                                                ## TypeSp
-	| type_specifier declaration_specifiers
+	| type_specifier declaration_specifiers                                         ## TypeSp
 	| type_qualifier                                                                ## TypeQf
-	| type_qualifier declaration_specifiers
+	| type_qualifier declaration_specifiers                                         ## TypeQf
 	| function_specifier
 	| function_specifier declaration_specifiers
 	;
@@ -196,7 +196,7 @@ type_specifier
 	| FLOAT                                                                         ## CommonSpName
 	| DOUBLE                                                                        ## CommonSpName
 	| SIGNED
-	| UNSIGNED
+	| UNSIGNED                                                                      ## CommonSpName
 	| BOOL                                                                          ## CommonSpName
 	| COMPLEX
 	| IMAGINARY
@@ -206,9 +206,9 @@ type_specifier
 	;
 
 struct_or_union_specifier
-	: struct_or_union IDENTIFIER '{' struct_declaration_list '}'
-	| struct_or_union '{' struct_declaration_list '}'
-	| struct_or_union IDENTIFIER
+	: struct_or_union IDENTIFIER '{' struct_declaration_list '}'                    ## RecordDeclaration
+	| struct_or_union '{' struct_declaration_list '}'                               ## RecordDeclaration
+	| struct_or_union IDENTIFIER                                                    ## RecordDeclaration
 	;
 
 struct_or_union
@@ -222,13 +222,13 @@ struct_declaration_list
 	;
 
 struct_declaration
-	: specifier_qualifier_list struct_declarator_list ';'
+	: specifier_qualifier_list struct_declarator_list ';'                           ## DeclarationInRecord
 	;
 
 specifier_qualifier_list
-	: type_specifier specifier_qualifier_list
+	: type_specifier specifier_qualifier_list                                       ## TypeSp
 	| type_specifier                                                                ## TypeSp
-	| type_qualifier specifier_qualifier_list
+	| type_qualifier specifier_qualifier_list                                       ## TypeQf
 	| type_qualifier                                                                ## TypeQf
 	;
 
@@ -238,17 +238,17 @@ struct_declarator_list
 	;
 
 struct_declarator
-	: declarator
+	: declarator                                                                    ## Declarator
 	| ':' constant_expression
 	| declarator ':' constant_expression
 	;
 
 enum_specifier
-	: ENUM '{' enumerator_list '}'
-	| ENUM IDENTIFIER '{' enumerator_list '}'
-	| ENUM '{' enumerator_list ',' '}'
-	| ENUM IDENTIFIER '{' enumerator_list ',' '}'
-	| ENUM IDENTIFIER
+	: ENUM '{' enumerator_list '}'                                                  ## EnumDeclaration
+	| ENUM IDENTIFIER '{' enumerator_list '}'                                       ## EnumDeclaration
+	| ENUM '{' enumerator_list ',' '}'                                              ## EnumDeclaration
+	| ENUM IDENTIFIER '{' enumerator_list ',' '}'                                   ## EnumDeclaration
+	| ENUM IDENTIFIER                                                               ## EnumDeclaration
 	;
 
 enumerator_list
@@ -257,8 +257,8 @@ enumerator_list
 	;
 
 enumerator
-	: IDENTIFIER
-	| IDENTIFIER '=' constant_expression
+	: IDENTIFIER                                                                    ## DeclarationInEnum
+	| IDENTIFIER '=' constant_expression                                            ## DeclarationInEnum
 	;
 
 type_qualifier

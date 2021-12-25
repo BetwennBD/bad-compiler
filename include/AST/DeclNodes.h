@@ -21,14 +21,20 @@ NAMEDDECL(NamedDecl, Decl)
 #ifndef TYPEDECL
 #define TYPEDECL(TYPE, BASE) DECL(TYPE, BASE)
 #endif
-TYPEDECL(TypeDecl, Decl)
+TYPEDECL(TypeDecl, NamedDecl)
 #undef TYPEDECL
 
 #ifndef RECORDDECL
 #define RECORDDECL(TYPE, BASE) DECL(TYPE, BASE)
 #endif
-RECORDDECL(RecordDecl, Decl)
+RECORDDECL(RecordDecl, TypeDecl)
 #undef RECORDDECL
+
+#ifndef ENUMDECL
+#define ENUMDECL(TYPE, BASE) DECL(TYPE, BASE)
+#endif
+ENUMDECL(EnumDecl, TypeDecl)
+#undef ENUMDECL
 
 #ifndef VALUEDECL
 #define VALUEDECL(TYPE, BASE) DECL(TYPE, BASE)
