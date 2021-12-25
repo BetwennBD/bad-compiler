@@ -18,6 +18,18 @@ TRANSLATIONUNITDECL(TranslationUnitDecl, Decl)
 NAMEDDECL(NamedDecl, Decl)
 #undef NAMEDDECL
 
+#ifndef TYPEDECL
+#define TYPEDECL(TYPE, BASE) DECL(TYPE, BASE)
+#endif
+TYPEDECL(TypeDecl, Decl)
+#undef TYPEDECL
+
+#ifndef RECORDDECL
+#define RECORDDECL(TYPE, BASE) DECL(TYPE, BASE)
+#endif
+RECORDDECL(RecordDecl, Decl)
+#undef RECORDDECL
+
 #ifndef VALUEDECL
 #define VALUEDECL(TYPE, BASE) DECL(TYPE, BASE)
 #endif

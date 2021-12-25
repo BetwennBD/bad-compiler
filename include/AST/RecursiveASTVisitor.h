@@ -133,6 +133,10 @@ DEF_TRAVERSE_DECL(TranslationUnitDecl, {
 
 DEF_TRAVERSE_DECL(NamedDecl, {})
 
+DEF_TRAVERSE_DECL(TypeDecl, {})
+
+DEF_TRAVERSE_DECL(RecordDecl, {})
+
 DEF_TRAVERSE_DECL(ValueDecl, {})
 
 DEF_TRAVERSE_DECL(DeclaratorDecl, {})

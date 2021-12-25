@@ -130,12 +130,13 @@ void ASTBuilder::enterSelector(CSTNode *node) {
     SelectorArray *selectorArray = new SelectorArray();
 
     // 三种selector('[]', '.', '->')的第二个词法单元都是终结符，可以据此判断类型
+    std::cout << node->getChildren()[1]->getType() << std::endl;
     assert(node->getChildren()[1]->isTerminal());
     if(node->getChildren()[1]->getType() == "[") {
         IndexSelector *indexSelector = new IndexSelector();
         selectorArray->addSelector(indexSelector);
     }
-    if(node->getChildren()[1]->getType() == ".") {
+    else if(node->getChildren()[1]->getType() == ".") {
         FieldSelector *fieldSelector = new FieldSelector();
         selectorArray->addSelector(fieldSelector);
     }

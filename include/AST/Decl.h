@@ -51,6 +51,8 @@ public:
         k_Decl,
         k_TranslationUnitDecl,
         k_NamedDecl,
+        k_TypeDecl,
+        k_RecordDecl,
         k_ValueDecl,
         k_DeclaratorDecl,
         k_FunctionDecl,
@@ -269,6 +271,36 @@ public:
     std::string getName() const { return name; }
 
     void setName(std::string _name)  { name = _name; }
+};
+
+class TypeDecl : public NamedDecl {
+public:
+    TypeDecl()
+    : NamedDecl() {
+        declKind = k_TypeDecl;
+    }
+};
+
+class RecordDecl : public TypeDecl {
+public:
+    std::vector<std::pair<std::string, QualType>> members;
+
+public:
+    RecordDecl()
+    : TypeDecl() {
+        declKind = k_RecordDecl;
+    }
+
+    int getNumMembers() const { return members.size(); }
+
+    std::pair<std::string, QualType> getMember( int pos ) {
+        assert(pos < members.size());
+        return members[pos];
+    }
+
+    void addMember(std::string _name, QualType _qualType) {
+        members.emplace_back(make_pair(_name, _qualType));
+    }
 };
 
 class ValueDecl : public NamedDecl {
