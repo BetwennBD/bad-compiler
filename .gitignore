@@ -3,3 +3,4 @@ CMakeLists.txt
 include/ASTConsumers/IRGenerator.h
 implement/CodeGen
 output/*
+main.cpp

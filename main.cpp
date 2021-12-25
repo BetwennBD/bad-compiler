@@ -12,7 +12,7 @@
 #include "include/ASTConsumers/JustForTest.h"
 #include "include/ASTConsumers/ASTTypeCheck.h"
 #include  "include/Lexer/Lexer.h"
-//#include "include/ASTConsumers/IRGenerator.h"
+#include "include/ASTConsumers/IRGenerator.h"
 
 std::vector<LexUnit> constructTestCase( const char* );
 
@@ -45,19 +45,19 @@ int main() {
     TranslationUnitDecl* translationUnitDecl = astBuilder.constructAST(head);
     if(translationUnitDecl == NULL)
         std::cout << "create AST failed";
-    ASTDumper astDumper;
-    astDumper.traverseTranslationUnitDecl(translationUnitDecl);
     FillReference fillReference;
     fillReference.traverseTranslationUnitDecl(translationUnitDecl);
     FillType fillType;
     fillType.traverseTranslationUnitDecl(translationUnitDecl);
-    JustForTest justForTest;
-    justForTest.traverseTranslationUnitDecl(translationUnitDecl);
-    ASTTypeCheck astTypeCheck;
-    astTypeCheck.traverseTranslationUnitDecl(translationUnitDecl);
-//    IRGenerator irGenerator;
-//    irGenerator.traverseTranslationUnitDecl(translationUnitDecl);
-//    deleteCST(head);
+    ASTDumper astDumper;
+    astDumper.traverseTranslationUnitDecl(translationUnitDecl);
+//    JustForTest justForTest;
+//    justForTest.traverseTranslationUnitDecl(translationUnitDecl);
+//    ASTTypeCheck astTypeCheck;
+//    astTypeCheck.traverseTranslationUnitDecl(translationUnitDecl);
+    IRGenerator irGenerator;
+    irGenerator.emitLLVMIR(translationUnitDecl);
+    deleteCST(head);
 }
 
 std::vector<LexUnit> constructTestCase(const char* filename) {

@@ -127,11 +127,25 @@ void ASTBuilder::quitStrLiteral(CSTNode *node) {
 
 // 处理数组和结构体元素选择
 void ASTBuilder::enterSelector(CSTNode *node) {
-    // 多个selector仅需一个selectorArray
-    if(nodeStack.top()->isStmt() && dynamic_cast<Stmt*>(nodeStack.top())->getKind() == Stmt::k_SelectorArray)
-        return;
-
     SelectorArray *selectorArray = new SelectorArray();
+
+    // 三种selector('[]', '.', '->')的第二个词法单元都是终结符，可以据此判断类型
+    assert(node->getChildren()[1]->isTerminal());
+    if(node->getChildren()[1]->getType() == "[") {
+        IndexSelector *indexSelector = new IndexSelector();
+        selectorArray->addSelector(indexSelector);
+    }
+    if(node->getChildren()[1]->getType() == ".") {
+        FieldSelector *fieldSelector = new FieldSelector();
+        selectorArray->addSelector(fieldSelector);
+    }
+    else if(node->getChildren()[1]->getType() == "PTR_OP") {
+        assert(0 && "In enterSelector: temporarily do not support PTR_OP");
+    }
+    else {
+        assert(0 && "In enterSelector: invalid selector type");
+    }
+
     nodeStack.push(selectorArray);
 }
 
@@ -145,8 +159,11 @@ void ASTBuilder::quitSelector(CSTNode *node) {
             delete tempStmt;
         }
         else if(auto tempStmt = dynamic_cast<SelectorArray*>(nodeStack.top())) {
-            // 这里假设若其上方有SelectorArray，则必为空，因为内容还未被遍历到
-            // 所以直接用当前SelectorArray替换
+            // 这里假设若其上方有SelectorArray，则仅有一个selector
+            // 所以加入后pSelectorArray直接用当前SelectorArray替换
+            assert(tempStmt->getSelectors().size() == 1);
+            for(auto selector : tempStmt->getSelectors())
+                pSelectorArray->addSelector(selector);
             delete tempStmt;
             nodeStack.pop();
             tempStmt = pSelectorArray;
@@ -802,7 +819,10 @@ void ASTBuilder::quitVirtualStmt(CSTNode *node) {
         return;
     }
     if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_IfStmt) {
-        dynamic_cast<IfStmt*>(parent)->setThen(pVirtualStmt->getRealStmt());
+        if(!dynamic_cast<IfStmt*>(parent)->hasThen())
+            dynamic_cast<IfStmt*>(parent)->setThen(pVirtualStmt->getRealStmt());
+        else
+            dynamic_cast<IfStmt*>(parent)->setElse(pVirtualStmt->getRealStmt());
         return;
     }
     if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_DoWhileStmt) {
@@ -874,15 +894,15 @@ void ASTBuilder::enterIfElseStmt(CSTNode *node) {
 
 void ASTBuilder::quitIfElseStmt(CSTNode *node) {
     SEC_GET_STMT(IfStmt)
-    assert(pIfStmt->hasThen());
+    assert(pIfStmt->hasElse());
 
     AbstractASTNode *parent = nodeStack.top();
-    if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_IfStmt) {
+    if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_VirtualStmt) {
         dynamic_cast<VirtualStmt*>(parent)->setRealStmt(pIfStmt);
         return;
     }
 
-    raiseRuleViolation("IfStmt", parent);
+    raiseRuleViolation("IfElseStmt", parent);
 }
 
 // 处理While循环
@@ -1012,13 +1032,16 @@ void ASTBuilder::exprCommonAction(AbstractASTNode *parent, Expr *pExpr, std::str
         auto pParent = dynamic_cast<SelectorArray*>(parent);
         if(!pParent->hasSubExpr())
             pParent->setSubExpr(pExpr);
-        else if(pExpr->getKind() == Stmt::k_DeclRefExpr) {
-            auto pNewSelector = new FieldSelector(dynamic_cast<DeclRefExpr*>(pExpr)->getRefName());
-            pParent->addSelector(pNewSelector);
-        }
         else {
-            auto pNewSelector = new IndexSelector(pExpr);
-            pParent->addSelector(pNewSelector);
+            int numSelectors = pParent->getNumSelectors();
+            auto tempSelector = pParent->getSelector(numSelectors - 1);
+            if (auto tempIndexSelector = dynamic_cast<IndexSelector*>(tempSelector)) {
+                tempIndexSelector->setIdxExpr(pExpr);
+            }
+            else if(auto tempFieldSelector = dynamic_cast<FieldSelector*>(tempSelector)) {
+                assert(pExpr->getKind() == Stmt::k_DeclRefExpr);
+                tempFieldSelector->setName(dynamic_cast<DeclRefExpr*>(pExpr)->getRefName());
+            }
         }
 
         return;

@@ -167,7 +167,7 @@ public:
 
     std::string getName() { return name; }
 
-    void setName( int _idx ) { idx = _idx; }
+    void setName( std::string _name ) { name = _name; }
 };
 
 class SelectorArray : public Expr {
@@ -193,6 +193,11 @@ public:
     void addSelector( Selector *_selector ) { selectors.emplace_back(_selector); }
 
     std::vector<Selector*>& getSelectors() { return selectors; }
+
+    Selector* getSelector( int pos ) {
+        assert(pos < selectors.size());
+        return selectors[pos];
+    }
 };
 
 class BinaryOperator : public Expr {

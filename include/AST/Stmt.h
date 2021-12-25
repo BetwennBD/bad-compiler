@@ -295,7 +295,7 @@ public:
 
     void setRealStmt( Stmt *_realStmt ) { realStmt = _realStmt; }
 
-    bool hasRealStmt() { return realStmt != nullptr; }
+    bool hasRealStmt() const { return realStmt != nullptr; }
 };
 
 #endif //FRONTEND_STMT_H

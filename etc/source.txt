@@ -1,23 +1,11 @@
-int global;
-int add(int a, int b)
-{
-    int j=a+b;
-    return j;
-}
-void myPrint(int para) {
-    if(para==1)
-        printf("para_is_1");
-    for(int i=0;i!=20;++i)
-    {
-         global += i;
-    }
-}
-int main(int argc, char *argv[]) {
-    int param = 1;
-    int f=9.8;
-    myPrint(param);
-    add(param,f);
-    sub(param,f);
-    return 0;
+int gcd(int a, int b) {
+  if(b == 0)
+    return a;
+  while(b != 0) {
+    int t = a % b;
+    a = b;
+    b = t;
+  }
+  return a;
 }
 #
