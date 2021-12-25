@@ -154,7 +154,7 @@ constant_expression
 	;
 
 declaration
-	: declaration_specifiers ';'
+	: declaration_specifiers ';'                                                    ## Declaration
 	| declaration_specifiers init_declarator_list ';'                               ## Declaration
 	;
 
