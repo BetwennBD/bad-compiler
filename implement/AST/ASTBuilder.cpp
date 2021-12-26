@@ -159,21 +159,14 @@ void ASTBuilder::enterSelector(CSTNode *node) {
 void ASTBuilder::quitSelector(CSTNode *node) {
     SEC_GET_STMT(SelectorArray)
 
-    while(nodeStack.top()->isStmt()) {
-        if(auto tempStmt = dynamic_cast<DerefSelector*>(nodeStack.top())) {
-            pSelectorArray->addSelector(dynamic_cast<DerefSelector*>(tempStmt));
-            nodeStack.pop();
-        }
-        else if(auto tempStmt = dynamic_cast<SelectorArray*>(nodeStack.top())) {
-            // 父节点加入pSelectorArray后直接用当前SelectorArray替换
-            for(auto selector : tempStmt->getSelectors())
-                pSelectorArray->addSelector(selector);
-            nodeStack.pop();
-            delete tempStmt;
-            nodeStack.push(pSelectorArray);
-            return;
-        }
-        else break;
+    if(auto tempStmt = dynamic_cast<SelectorArray*>(nodeStack.top())) {
+        // 父节点加入pSelectorArray后直接用当前SelectorArray替换
+        for (auto selector: tempStmt->getSelectors())
+            pSelectorArray->addSelector(selector);
+        nodeStack.pop();
+        delete tempStmt;
+        nodeStack.push(pSelectorArray);
+        return;
     }
 
     AbstractASTNode *parent = nodeStack.top();
@@ -228,8 +221,11 @@ void ASTBuilder::enterPreOp(CSTNode *node) {
     }
 
     if(opKind == "*") {
+        SelectorArray *selectorArray = new SelectorArray();
         DerefSelector *derefSelector = new DerefSelector();
-        nodeStack.push(derefSelector);
+        selectorArray->addSelector(derefSelector);
+
+        nodeStack.push(selectorArray);
         return;
     }
 
@@ -254,11 +250,27 @@ void ASTBuilder::enterPreOp(CSTNode *node) {
 }
 
 void ASTBuilder::quitPreOp(CSTNode *node) {
-    // 对解引用特别处理（即不处理，因为会在selector处处理）
+    // 对解引用特别处理
     if(!node->getChildren()[0]->isTerminal()) {
         std::string opKind;
         opKind = node->getChildren()[0]->getChildren()[0]->getType();
-        if(opKind == "*") return;
+        if(opKind == "*")  {
+            SEC_GET_STMT(SelectorArray)
+
+            if(auto tempStmt = dynamic_cast<SelectorArray*>(nodeStack.top())) {
+                // 父节点加入pSelectorArray后直接用当前SelectorArray替换
+                for (auto selector: tempStmt->getSelectors())
+                    pSelectorArray->addSelector(selector);
+                nodeStack.pop();
+                delete tempStmt;
+                nodeStack.push(pSelectorArray);
+                return;
+            }
+
+            AbstractASTNode *parent = nodeStack.top();
+            exprCommonAction(parent, pSelectorArray, "Selector");
+            return;
+        }
     }
 
     SEC_GET_STMT(UnaryOperator)

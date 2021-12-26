@@ -1,12 +1,6 @@
-int a[10][10];
-
-int calc(int a, int b) {
-  return a + b;
-}
-
 int main(int b) {
-  int a = b + 3, c = b + 2;
-  int d = calc(a, c);
-  return d;
+  int *a;
+  *a = 3;
+  return b;
 }
 #

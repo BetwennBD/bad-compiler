@@ -309,11 +309,13 @@ public:
 class RecordType : public Type {
 public:
     std::vector<QualType> members;
+    std::string name;
     bool isS;
 
     RecordType()
     : Type() {
         typeKind = k_RecordType;
+        name = "";
         isS = 1;
     }
 
@@ -339,15 +341,22 @@ public:
     void setStruct() { isS = 1; }
 
     void setUnion() { isS = 0; }
+
+    std::string getName() { return name; }
+
+    void setName( std::string _name ) { name = _name; }
 };
 
 class EnumType : public Type {
 public:
     std::vector<std::pair<std::string, int>> members;
+    std::string name;
 
     EnumType()
     : Type() {
         typeKind = k_EnumType;
+        members.resize(0);
+        name = "";
     }
 
     int getNumMembers() const { return members.size(); }
@@ -360,6 +369,10 @@ public:
     void addMember(std::string _name, int _value) {
         members.emplace_back(std::make_pair(_name, _value));
     }
+
+    std::string getName() { return name; }
+
+    void setName( std::string _name ) { name = _name; }
 };
 
 class UnknownType : public Type {
