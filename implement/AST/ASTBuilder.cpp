@@ -675,6 +675,7 @@ void ASTBuilder::quitDeclaratorName(CSTNode *node) {
 void ASTBuilder::enterArray(CSTNode *node) {
     QualType *qualType = new QualType();
     VariableArrayType *tempType = new VariableArrayType();
+    tempType->setElementType(declTypeCp.getType());
     qualType->setType(tempType);
     nodeStack.push(qualType);
 }
@@ -691,7 +692,6 @@ void ASTBuilder::quitArray(CSTNode *node) {
         QualType oldQualType = dynamic_cast<VarDecl*>(parent)->getQualType();
         VariableArrayType *newType = dynamic_cast<VariableArrayType*>(pQualType->getType());
         assert(newType);
-        newType->setElementType(oldQualType.getType());
         oldQualType.setType(newType);
         dynamic_cast<VarDecl*>(parent)->setQualType(oldQualType);
 
@@ -706,7 +706,6 @@ void ASTBuilder::quitArray(CSTNode *node) {
         QualType oldQualType = dynamic_cast<ParamVarDecl*>(parent)->getQualType();
         VariableArrayType *newType = dynamic_cast<VariableArrayType*>(pQualType->getType());
         assert(newType);
-        newType->setElementType(oldQualType.getType());
         oldQualType.setType(newType);
         dynamic_cast<ParamVarDecl*>(parent)->setQualType(oldQualType);
 
@@ -717,8 +716,6 @@ void ASTBuilder::quitArray(CSTNode *node) {
 
         return;
     }
-    //Fixme:
-    // 急着洗澡，写得仓促，可能有错
     if(parent->isQualType() && dynamic_cast<QualType*>(parent)->getTypeKind() == Type::k_VariableArrayType) {
         // 这里假设不会是incompleteType
         Type *T = dynamic_cast<QualType*>(parent)->getType();
@@ -735,6 +732,7 @@ void ASTBuilder::enterStaticModifierArray(CSTNode *) {
     QualType *qualType = new QualType();
     VariableArrayType *tempType = new VariableArrayType();
     tempType->setStatic();
+    tempType->setElementType(declTypeCp.getType());
     qualType->setType(tempType);
     nodeStack.push(qualType);
 }
@@ -747,7 +745,6 @@ void ASTBuilder::quitStaticModifierArray(CSTNode *node) {
         QualType oldQualType = dynamic_cast<VarDecl*>(parent)->getQualType();
         VariableArrayType *newType = dynamic_cast<VariableArrayType*>(pQualType->getType());
         assert(newType);
-        newType->setElementType(oldQualType.getType());
         oldQualType.setType(newType);
         dynamic_cast<VarDecl*>(parent)->setQualType(oldQualType);
 
@@ -762,7 +759,6 @@ void ASTBuilder::quitStaticModifierArray(CSTNode *node) {
         QualType oldQualType = dynamic_cast<ParamVarDecl*>(parent)->getQualType();
         VariableArrayType *newType = dynamic_cast<VariableArrayType*>(pQualType->getType());
         assert(newType);
-        newType->setElementType(oldQualType.getType());
         oldQualType.setType(newType);
         dynamic_cast<ParamVarDecl*>(parent)->setQualType(oldQualType);
 
@@ -775,7 +771,8 @@ void ASTBuilder::quitStaticModifierArray(CSTNode *node) {
     }
     if(parent->isQualType() && dynamic_cast<QualType*>(parent)->getTypeKind() == Type::k_VariableArrayType) {
         // 这里假设不会是incompleteType
-        dynamic_cast<QualType*>(parent)->setType(pQualType->getType());
+        Type *T = dynamic_cast<QualType*>(parent)->getType();
+        dynamic_cast<VariableArrayType*>(T)->setElementType(pQualType->getType());
         return;
     }
 
@@ -787,6 +784,7 @@ void ASTBuilder::quitStaticModifierArray(CSTNode *node) {
 void ASTBuilder::enterIncompleteArray(CSTNode *) {
     QualType *qualType = new QualType();
     IncompleteArrayType *tempType = new IncompleteArrayType();
+    tempType->setElementType(declTypeCp.getType());
     qualType->setType(tempType);
     nodeStack.push(qualType);
 }
@@ -799,7 +797,6 @@ void ASTBuilder::quitIncompleteArray(CSTNode *node) {
         QualType oldQualType = dynamic_cast<VarDecl*>(parent)->getQualType();
         IncompleteArrayType *newType = dynamic_cast<IncompleteArrayType*>(pQualType->getType());
         assert(newType);
-        newType->setElementType(oldQualType.getType());
         oldQualType.setType(newType);
         dynamic_cast<VarDecl*>(parent)->setQualType(oldQualType);
 
@@ -814,7 +811,6 @@ void ASTBuilder::quitIncompleteArray(CSTNode *node) {
         QualType oldQualType = dynamic_cast<ParamVarDecl*>(parent)->getQualType();
         IncompleteArrayType *newType = dynamic_cast<IncompleteArrayType*>(pQualType->getType());
         assert(newType);
-        newType->setElementType(oldQualType.getType());
         oldQualType.setType(newType);
         dynamic_cast<ParamVarDecl*>(parent)->setQualType(oldQualType);
 
