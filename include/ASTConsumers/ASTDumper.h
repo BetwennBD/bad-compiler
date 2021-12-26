@@ -55,7 +55,7 @@ public:
                     Expr * indexExpr=dynamic_cast<IndexSelector*>(curSelector)->getIdxExpr();
                     if(indexExpr->getKind()==Expr::k_IntegerLiteral)
                     {
-                       itoa(dynamic_cast<IntegerLiteral*>(indexExpr)->getValue(),indexchars,10);
+//                       itoa(dynamic_cast<IntegerLiteral*>(indexExpr)->getValue(),indexchars,10);
                     }
                     else if(indexExpr->getKind()==Expr::k_DeclRefExpr)
                     {
