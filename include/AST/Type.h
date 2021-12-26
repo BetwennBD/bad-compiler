@@ -315,14 +315,15 @@ public:
     RecordType()
     : Type() {
         typeKind = k_RecordType;
-        name = "";
         isS = 1;
+        name = "";
     }
 
     RecordType( bool _isS )
     : Type() {
         typeKind = k_RecordType;
         isS = _isS;
+        name = "";
     }
 
     int getNumMembers() const { return members.size(); }
