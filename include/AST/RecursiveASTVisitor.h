@@ -136,9 +136,9 @@ DEF_TRAVERSE_DECL(NamedDecl, {})
 DEF_TRAVERSE_DECL(TypeDecl, {})
 
 DEF_TRAVERSE_DECL(RecordDecl, {
-    for(auto declStmt : D->declStmts) {
-        traverseDeclStmt(declStmt);
-    }
+//    for(auto declStmt : D->declStmts) {
+//        traverseDeclStmt(declStmt);
+//    }
 })
 
 DEF_TRAVERSE_DECL(EnumDecl, {})
