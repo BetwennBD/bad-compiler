@@ -1,12 +1,12 @@
-enum A {
-  a = 2 * 3,
-  b,
-  c
-};
-int main() {
-  const int a = 2;
-  int b = 8;
-  a = b;
-  return 0;
+int a[10][10];
+
+int calc(int a, int b) {
+  return a + b;
+}
+
+int main(int b) {
+  int a = b + 3, c = b + 2;
+  int d = calc(a, c);
+  return d;
 }
 #

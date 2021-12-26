@@ -190,12 +190,7 @@ void ASTBuilder::quitFuncCall(CSTNode *node) {
     SEC_GET_STMT(CallExpr)
 
     AbstractASTNode *parent = nodeStack.top();
-    if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_VirtualStmt) {
-        dynamic_cast<VirtualStmt*>(parent)->setRealStmt(pCallExpr);
-        return;
-    }
-
-    raiseRuleViolation("FuncCall", parent);
+    exprCommonAction(parent, pCallExpr, "FuncCall");
 }
 
 // 处理一元后缀运算符
@@ -726,7 +721,8 @@ void ASTBuilder::quitArray(CSTNode *node) {
     // 急着洗澡，写得仓促，可能有错
     if(parent->isQualType() && dynamic_cast<QualType*>(parent)->getTypeKind() == Type::k_VariableArrayType) {
         // 这里假设不会是incompleteType
-        dynamic_cast<QualType*>(parent)->setType(pQualType->getType());
+        Type *T = dynamic_cast<QualType*>(parent)->getType();
+        dynamic_cast<VariableArrayType*>(T)->setElementType(pQualType->getType());
         return;
     }
 

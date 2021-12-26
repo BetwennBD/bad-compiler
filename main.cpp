@@ -49,7 +49,6 @@ int main() {
         std::cout << "create AST failed";
     FillReference fillReference;
     fillReference.traverseTranslationUnitDecl(translationUnitDecl);
-    return 0;
     FillType fillType;
     fillType.traverseTranslationUnitDecl(translationUnitDecl);
     ASTDumper astDumper;
