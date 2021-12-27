@@ -140,9 +140,9 @@ public:
         }
         if(flag)
         {
-            Type* t=curType.getType();
-            std::cout<<"now in declrefexpr, the typekind is "<<short(t->getKind())<<"**\n";
             E->setType(curType);
+            E->setValueKind(ExprValueKind::LValue);
+            std::cout<<curName<<" is LValue\n";
         }
         else
         {
