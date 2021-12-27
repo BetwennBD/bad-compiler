@@ -46,10 +46,10 @@ CSTNode* CSTBuilder::constructCST(std::vector<LexUnit> lexInput, int verbose) {
 
         // 发生错误
         if(next == -1) {
-            std::cout << "An error occurred in parser: ";
+            std::cout << "In Parser: ";
             std::cout << "run into illegal entry.\n";
-//            std::cout <<  curState << std::endl;
-//            std::cout <<  unit.id << std::endl;
+            std::cout << "curState is: I" <<  curState << std::endl;
+            std::cout << "curUnit is : ( " << unit.type << " , " << unit.id << " )" << std::endl;
             return NULL;
         }
 
@@ -58,6 +58,10 @@ CSTNode* CSTBuilder::constructCST(std::vector<LexUnit> lexInput, int verbose) {
             stateStack.push(next);
             CSTNode *node = new CSTNode(0, unit.id, unit.type);
             nodeStack.push(node);
+            if(verbose) {
+                std::cout << "shift : ( " << unit.type << " , " << unit.id << " )" << std::endl;
+                std::cout << "curState is: " << curState << std::endl;
+            }
             i ++;
         }
         // 归约
@@ -87,7 +91,11 @@ CSTNode* CSTBuilder::constructCST(std::vector<LexUnit> lexInput, int verbose) {
             }
             nodeStack.push(pNode);
 
-            if(verbose) printProducer(producer);
+            if(verbose) {
+                std::cout << "reduce: ";
+                printProducer(producer);
+                std::cout << "curState is: " << curState << std::endl;
+            }
 //            std::cout <<  curState << std::endl;
 //            std::cout <<  unit.id << std::endl;
         }

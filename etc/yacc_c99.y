@@ -198,6 +198,7 @@ type_specifier
 	| SIGNED
 	| UNSIGNED                                                                      ## CommonSpName
 	| BOOL                                                                          ## CommonSpName
+	| PORT                                                                          ## CommonSpName
 	| COMPLEX
 	| IMAGINARY
 	| struct_or_union_specifier

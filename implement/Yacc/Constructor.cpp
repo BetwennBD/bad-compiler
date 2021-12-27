@@ -54,26 +54,26 @@ ull Constructor::hash(Item item) {
 
 Item Constructor::sClosure(Item item) {
     Item newItem = item;
-    int itemCount = newItem.size();
-    std::set< int > exists;
+    int tempCount = newItem.size();
+    std::set< std::pair<int, int> > exists;
 
-    for(int i = 0;i < itemCount;++i) {
+    for(int i = 0;i < tempCount;++i) {
         Entry entry = newItem[i];
-        exists.insert(entry.id);
+        exists.insert(std::make_pair(entry.id, entry.cur));
     }
 
-    for(int i = 0;i < itemCount;++i) {
+    for(int i = 0;i < tempCount;++i) {
         Entry entry = newItem[i];
         if(grammarSet->isNonTerminal(entry.currentToken())) {
             auto productions = grammarSet->getProductionSet(entry.currentToken());
 
             for(auto production : productions) {
-                if(exists.find(production.second) == exists.end()) {
+                if(exists.find(std::make_pair(production.second, 0)) == exists.end()) {
                     newItem.emplace_back(
                             Entry(entry.currentToken(), production.first, production.second)
                     );
-                    exists.insert(production.second);
-                    itemCount ++;
+                    exists.insert(std::make_pair(production.second, 0));
+                    tempCount ++;
                 }
             }
         }
@@ -84,7 +84,6 @@ Item Constructor::sClosure(Item item) {
 
 Item Constructor::sGoto(Item item, Token token) {
     Item newItem;
-
     for(Entry entry : item) {
         if(token == entry.currentToken())
             newItem.emplace_back(

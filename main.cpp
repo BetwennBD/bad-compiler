@@ -23,6 +23,7 @@ int main() {
     parseProducer(grammarSet, "../etc/yacc_c99.y");
     LALRconstructor lalrConstructor(&grammarSet);
     lalrConstructor.constructLR0Core();
+    lalrConstructor.printItemSet("../output/item_set.txt");
     lalrConstructor.labelPropagate();
     lalrConstructor.extend();
     lalrConstructor.printItemSet("../output/item_set.txt");
