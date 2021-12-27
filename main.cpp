@@ -9,6 +9,7 @@
 #include "include/ASTConsumers/ASTDumper.h"
 #include "include/ASTConsumers/FillType.h"
 #include "include/ASTConsumers/FillReference.h"
+#include "include/ASTConsumers/CalculateConstant.h"
 #include "include/ASTConsumers/JustForTest.h"
 #include "include/ASTConsumers/ASTTypeCheck.h"
 #include  "include/Lexer/Lexer.h"
@@ -52,12 +53,16 @@ int main() {
     fillReference.traverseTranslationUnitDecl(translationUnitDecl);
     FillType fillType;
     fillType.traverseTranslationUnitDecl(translationUnitDecl);
-    ASTDumper astDumper;
-    astDumper.traverseTranslationUnitDecl(translationUnitDecl);
+    CalculateConstant calculateConstant;
+    calculateConstant.traverseTranslationUnitDecl(translationUnitDecl);
 //    JustForTest justForTest;
 //    justForTest.traverseTranslationUnitDecl(translationUnitDecl);
-//    ASTTypeCheck astTypeCheck;
-//    astTypeCheck.traverseTranslationUnitDecl(translationUnitDecl);
+    ASTTypeCheck astTypeCheck;
+    astTypeCheck.traverseTranslationUnitDecl(translationUnitDecl);
+
+    ASTDumper astDumper;
+    astDumper.traverseTranslationUnitDecl(translationUnitDecl);
+
     IRGenerator irGenerator;
     irGenerator.emitLLVMIR(translationUnitDecl);
     deleteCST(head);

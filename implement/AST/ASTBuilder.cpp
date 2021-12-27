@@ -625,17 +625,13 @@ void ASTBuilder::quitTypeQf(CSTNode *node) {
 
 // 处理变量定义语句中的具体变量定义
 void ASTBuilder::enterDeclarator(CSTNode *node) {
-    // 若断言失败，则类型未初始化
-    assert(!declTypeCp.isUncertainType());
     VarDecl *varDecl = new VarDecl();
-    varDecl->setQualType(declTypeCp);
     nodeStack.push(varDecl);
 }
 
 void ASTBuilder::quitDeclarator(CSTNode *node) {
     SEC_GET_DECL(VarDecl);
-    // 若断言失败，则类型未初始化
-    assert(!(pVarDecl->getQualType().isUncertainType()));
+    pVarDecl->setQualType(declTypeCp);
 
     AbstractASTNode *parent = nodeStack.top();
     if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_DeclStmt) {
@@ -838,28 +834,14 @@ void ASTBuilder::quitIncompleteArray(CSTNode *node) {
 }
 
 // 处理指针定义
-void ASTBuilder::enterPointer(CSTNode *) {}
-
-void ASTBuilder::quitPointer(CSTNode *node) {
-
-    AbstractASTNode *parent = nodeStack.top();
-    if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_VarDecl) {
-        PointerType *newType = new PointerType();
-        QualType * qualType = new QualType(dynamic_cast<VarDecl*>(parent)->getQualType());
-        newType->setPointeeType(qualType);
-        dynamic_cast<VarDecl*>(parent)->setQualType(QualType(newType));
-        return;
-    }
-    if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_ParamVarDecl) {
-        PointerType *newType = new PointerType();
-        QualType * qualType = new QualType(dynamic_cast<ParamVarDecl*>(parent)->getQualType());
-        newType->setPointeeType(qualType);
-        dynamic_cast<VarDecl*>(parent)->setQualType(QualType(newType));
-        return;
-    }
-
-    raiseRuleViolation("Pointer", parent);
+void ASTBuilder::enterPointer(CSTNode *) {
+    PointerType *newType = new PointerType();
+    QualType *pDeclTypeCp = new QualType(declTypeCp);
+    newType->setPointeeType(pDeclTypeCp);
+    declTypeCp = QualType(newType);
 }
+
+void ASTBuilder::quitPointer(CSTNode *node) {}
 
 // 处理函数形参定义
 void ASTBuilder::enterFormalParamDef(CSTNode *node) {

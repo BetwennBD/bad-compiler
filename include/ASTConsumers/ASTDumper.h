@@ -27,8 +27,8 @@ public:
     }
     void outForSA(SelectorArray* E)
     {
-        std::cout<<"(type)";
-        return;
+//        std::cout<<"(type)";
+//        return;
         //输出格式: int [30], *(students[t].name)
         std::string outFormat="";
         int numSelectors=E->getNumSelectors();
@@ -81,8 +81,8 @@ public:
     }
     void outType(QualType t)
     {
-        std::cout<<"(type)";
-        return;
+//        std::cout<<"(type)";
+//        return;
        std::cout << "(";
         Type*cType=t.getType();
         if(cType==nullptr)
