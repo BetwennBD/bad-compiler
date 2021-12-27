@@ -21,6 +21,10 @@ public:
     //tables空不空还能指示当前在函数里面还是全局
     std::vector<FunctionDecl*>tables;
     std::vector<FunctionDecl>allFunctions;
+    //为struct而设置的
+    std::map<RecordType*,std::vector<std::string>> recordMembers;
+    std::map<std::string,RecordType*>recordRef;
+    std::map<RecordType*,std::vector<QualType>> recordMemberQTs;
     FunctionDecl* curFunction;
     TranslationUnitDecl* curRoot;
     int fornum=0;
@@ -73,6 +77,7 @@ public:
     }
     bool visitBinaryOperator(BinaryOperator* E)
     {
+        std::cout<<"test:visit Binary \n";
         switch (E->getOp())
         {
             case BinaryOperator::_add:
@@ -81,22 +86,29 @@ public:
             case BinaryOperator::_div:
             case BinaryOperator::_mod:
             {
+                //todo:清理没有必要的implict，对右值的赋值报错处理
                 int equal=3;
                 QualType imQualType=getLarger(E->getLHS()->getQualType(),E->getRHS()->getQualType(),equal);
                 //binaryoperator的子节点是binaryoperator的情况下同样支持
                 if(equal==1||(E->getRHS()->getKind()==Stmt::k_DeclRefExpr&&E->getRHS()->isLValue()))
                 {
-                    ImplicitCastExpr* curImplicit=new ImplicitCastExpr(imQualType,E->getRHS());
-                    curImplicit->setValueKind(ExprValueKind::RValue);
-                    E->setRHS(curImplicit);
-                    std::cout<<"there is a impli in binary r************\n";
+                    if(E->getRHS()->getKind()!=Expr::k_IntegerLiteral&&
+                    E->getRHS()->getKind()!=Expr::k_FloatingLiteral)
+                    {
+                        ImplicitCastExpr* curImplicit=new ImplicitCastExpr(imQualType,E->getRHS());
+                        curImplicit->setValueKind(ExprValueKind::RValue);
+                        E->setRHS(curImplicit);
+                    }
                 }
                 if(equal==2||(E->getLHS()->getKind()==Stmt::k_DeclRefExpr&&E->getLHS()->isLValue()))
                 {
-                    ImplicitCastExpr* curImplicit=new ImplicitCastExpr(imQualType,E->getLHS());
-                    curImplicit->setValueKind(ExprValueKind::RValue);
-                    std::cout<<"there is a impli in binary l**************\n";
-                    E->setLHS(curImplicit);
+                    if(E->getLHS()->getKind()!=Expr::k_IntegerLiteral&&
+                       E->getLHS()->getKind()!=Expr::k_FloatingLiteral)
+                    {
+                        ImplicitCastExpr* curImplicit=new ImplicitCastExpr(imQualType,E->getLHS());
+                        curImplicit->setValueKind(ExprValueKind::RValue);
+                        E->setLHS(curImplicit);
+                    }
                 }
                 E->setType(imQualType);
                 break;
@@ -113,16 +125,24 @@ public:
             case BinaryOperator::_lsh_assign:
             case BinaryOperator::_rsh_assign:
             {
-                //todo:要报错吗？可是类型之间都可以互相cast，有上面错可以报呢
+                std::cout<<"test: assign\n";
+                if(E->getLHS()->getQualType().isConst())
+                {
+                    std::cout<<"you cannot assign RValue or a const value\n";
+                    return true;
+                }
                 int equal=0;
                 QualType imQualType=getLarger(E->getLHS()->getQualType(),E->getRHS()->getQualType(),equal);
                 if(equal!=0||(E->getRHS()->getKind()==Stmt::k_DeclRefExpr&&E->getRHS()->isLValue()))
                 {
-                    ImplicitCastExpr* curImplicit=
-                            new ImplicitCastExpr(E->getLHS()->getQualType(),E->getRHS());
-                    curImplicit->setValueKind(ExprValueKind::RValue);
-                    E->setRHS(curImplicit);
-                    std::cout<<"there is a impli in binary _f_assign*******\n";
+                    if(E->getLHS()->getKind()!=Expr::k_IntegerLiteral&&
+                       E->getLHS()->getKind()!=Expr::k_FloatingLiteral)
+                    {
+                        ImplicitCastExpr* curImplicit=
+                                new ImplicitCastExpr(E->getLHS()->getQualType(),E->getRHS());
+                        curImplicit->setValueKind(ExprValueKind::RValue);
+                        E->setRHS(curImplicit);
+                    }
                 }
                 E->setType(E->getLHS()->getQualType());
                 break;
@@ -150,17 +170,17 @@ public:
     }
     bool visitIntegerLiteral(IntegerLiteral* E)
     {
+        std::cout<<"test:visit int "<<E->getValue()<<"\n";
         BuiltInType* newType=new BuiltInType(BuiltInType::_int);
         QualType newQualType(newType);
-        newQualType.setConst();
         E->setType(newQualType);
         return true;
     }
     bool visitFloatingLiteral(FloatingLiteral* E)
     {
+        std::cout<<"test:visit float "<<E->getValue()<<"\n";
         BuiltInType* newType=new BuiltInType(BuiltInType::_float);
         QualType newQualType(newType);
-        newQualType.setConst();
         E->setType(newQualType);
         return true;
     }
@@ -171,7 +191,6 @@ public:
         BuiltInType* eleType=new BuiltInType(BuiltInType::_char);
         newType->setElementType(eleType);
         QualType newQualType(newType);
-        newQualType.setConst();
         E->setType(newQualType);
         return true;
     }
@@ -179,10 +198,21 @@ public:
     QualType getLarger(QualType a,QualType b,int&equal)
     {
         //equal=0代表类型一样，=1代表和a类型一样，=2代表和b类型一样
-        //只针对builtintype,否则函数报错
+        //a b都是简单类型
+        std::cout<<"test: larger\n";
         int space[8]={0,4,1,1,2,4,4,8};
         Type* atype=a.getType();
+        if(atype==nullptr)
+        {
+            std::cout<<"Error, calculate operand is null";
+            std::cout<<(short)atype->getKind()<<"\n";
+        }
         Type* btype=b.getType();
+        if(btype==nullptr)
+        {
+            std::cout<<"btype  is null";
+            std::cout<<(short)btype->getKind()<<"\n";
+        }
         short anum=dynamic_cast<BuiltInType*> (atype)->getTypeType();
         short bnum=dynamic_cast<BuiltInType*> (btype)->getTypeType();
         if(anum==bnum)
@@ -197,6 +227,7 @@ public:
     }
     bool visitSelectorArray(SelectorArray*E) {
         //还要填充subexpr的类型
+        std::cout<<"test: SelectorArray \n";
         if(!E->hasSubExpr())
         {
             std::cout<<"Error, this SelectorArray doesn't hava a subexpr\n";
@@ -209,27 +240,100 @@ public:
         for(int i=0;i!=numSelectors;++i)
         {
             Selector * curSelector=curSelectors[i];
+            if(curSelector== nullptr)
+            {
+                std::cout<<"curSelector is nullptr\n";
+                return true;
+            }
             switch (curSelector->getKind())
             {
                 case Expr::k_DerefSelector:
                 {
+                    std::cout<<"test: pointer ";
+                    std::cout<<"test type:"<<(short)curQualType.getTypeKind()<<"***\n";
                     curQualType=*dynamic_cast<PointerType*>(curQualType.getType())->getPointeeType();
                     break;
                 }
                 case Expr::k_IndexSelector:
                 {
+                    std::cout<<"test: index  ";
+                    std::cout<<"test type:"<<(short)curQualType.getTypeKind()<<"***\n";
+                    if(curQualType.getTypeKind()==Type::k_BuiltInType)
+                    {
+                        std::cout<<"it is builtintype, not array\n";
+                        return true;
+                    }
                     curQualType.setType(dynamic_cast<ArrayType*>(curQualType.getType())->getElementType());
                     break;
                 }
                 case Expr::k_FieldSelector:
                 {
-                    //todo:struct待完善
-                    break;
+                    std::cout<<"test:field\n";
+                    Type* curType= curQualType.getType();
+                    //curRecordType是unkowntype，根据它的名字找到对应的struct
+                    std::string unkonwnName= dynamic_cast<UnknownType*>(curType)->getName();
+                    RecordType* curRecordType=new RecordType();
+                    if(recordRef.find(unkonwnName)!=recordRef.end())
+                        curRecordType=recordRef.find(unkonwnName)->second;
+                    std::string curMemberName= dynamic_cast<FieldSelector*>(curSelector)->getName();
+                    std::vector<std::string>definedMembers=recordMembers.find(curRecordType)->second;
+                    int k=0;
+                    for(;k!=definedMembers.size();++k)
+                    {
+                        if(definedMembers[k]==curMemberName)
+                            break;
+                    }
+                    if(k>=definedMembers.size())
+                    {
+                        std::cout<<"Error,curMember do not belong to curRecord\n";
+                        return true;
+                    }
+                    else
+                    {
+                        std::cout<<"add idx "<<k<<" to member "<<definedMembers[k]<<"\n";
+                        dynamic_cast<FieldSelector*>(curSelector)->setIdx(k);
+                        std::vector<QualType> tempQualTypes=recordMemberQTs.
+                                find(dynamic_cast<RecordType*>(curRecordType))->second;
+                        curQualType.setType(tempQualTypes[k].getType());
+                        break;
+                    }
                 }
             }
         }
+        std::cout<<"test:selector array basic type:"<<(short )curQualType.getTypeKind()<<"\n";
         E->setType(curQualType);
         return false;
+    }
+    bool visitRecordDecl(RecordDecl* D)
+    {
+        std::cout<<"test: visit record decl\n";
+        if(D->isStruct())
+        {
+            RecordType* curRecordType=new RecordType(D->isStruct());
+            std::vector<std::string> memberNames;
+            std::vector<QualType>memberQTs;
+            for(int i=0;i!=D->getNumDeclStmts();++i)
+            {
+                DeclStmt* curDeclStmt=D->getDeclStmt(i);
+                for(int j=0;j!=curDeclStmt->getNumDecls();++j)
+                {
+                    VarDecl* curVarDecl=curDeclStmt->getDecl(j);
+                    curRecordType->addMember(curVarDecl->getQualType());
+                    memberNames.push_back(curVarDecl->getName());
+                    memberQTs.push_back(curVarDecl->getQualType());
+                }
+            }
+            if(D->hasTag())
+            {
+                recordMembers.insert(std::make_pair(curRecordType,memberNames));
+                recordRef.insert(std::make_pair(D->getName(),curRecordType));
+                recordMemberQTs.insert(std::make_pair(curRecordType,memberQTs));
+            }
+            else
+            {
+                //todo:对于无名struct
+            }
+        }
     }
 };
 #endif //FRONTEND_FILLTYPE_H
