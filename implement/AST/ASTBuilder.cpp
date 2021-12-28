@@ -631,7 +631,10 @@ void ASTBuilder::enterDeclarator(CSTNode *node) {
 
 void ASTBuilder::quitDeclarator(CSTNode *node) {
     SEC_GET_DECL(VarDecl);
-    pVarDecl->setQualType(declTypeCp);
+    // 如果有数组声明
+    // 则类型已经设置，避免覆盖
+    if(pVarDecl->getQualType().isUncertainType())
+        pVarDecl->setQualType(declTypeCp);
 
     AbstractASTNode *parent = nodeStack.top();
     if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_DeclStmt) {

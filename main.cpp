@@ -10,7 +10,6 @@
 #include "include/ASTConsumers/FillType.h"
 #include "include/ASTConsumers/FillReference.h"
 #include "include/ASTConsumers/CalculateConstant.h"
-#include "include/ASTConsumers/JustForTest.h"
 #include "include/ASTConsumers/ASTTypeCheck.h"
 #include  "include/Lexer/Lexer.h"
 #include "include/ASTConsumers/IRGenerator.h"
@@ -49,14 +48,13 @@ int main() {
     TranslationUnitDecl* translationUnitDecl = astBuilder.constructAST(head);
     if(translationUnitDecl == NULL)
         std::cout << "create AST failed";
+
     FillReference fillReference;
     fillReference.traverseTranslationUnitDecl(translationUnitDecl);
     FillType fillType;
     fillType.traverseTranslationUnitDecl(translationUnitDecl);
     CalculateConstant calculateConstant;
     calculateConstant.traverseTranslationUnitDecl(translationUnitDecl);
-//    JustForTest justForTest;
-//    justForTest.traverseTranslationUnitDecl(translationUnitDecl);
     ASTTypeCheck astTypeCheck;
     astTypeCheck.traverseTranslationUnitDecl(translationUnitDecl);
 
