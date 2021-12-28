@@ -55,19 +55,23 @@ protected:
 public:
     std::vector< Token > terminalList;
     std::map< Token, int > terminalIndex;
-    int numTerminal = 0;
+    int numTerminal;
     std::vector< Token > nonTerminalList;
     std::map< Token, int > nonTerminalIndex;
-    int numNonTerminal = 0;
+    int numNonTerminal;
+
+    int numItem;
 
     std::vector< std::vector< int > > actionTable;
     std::vector< std::vector< int > > gotoTable;
 
-    Constructor( GrammarSet* );
+    Constructor( GrammarSet*, int = 0, int = 0, int = 0 );
 
-    void generateTable( const char* = "conflict.txt" );
+    void generateTable( const char* = "../output/conflict.txt" );
 
-    void printTable(const char* = "action.txt", const char* = "goto.txt");
+    void printTable(const char* = "../etc/action.txt", const char* = "../etc/goto.txt");
+
+    void readTable(const char* = "../etc/action.txt", const char* = "../etc/goto.txt");
 
     void printItemSet( const char* = "item_set.txt" );
 };
@@ -75,7 +79,7 @@ public:
 class LALRconstructor : public Constructor
 {
 public:
-    LALRconstructor( GrammarSet* );
+    LALRconstructor( GrammarSet*, int = 0, int = 0, int = 0 );
 
     void constructLR0Core();
 

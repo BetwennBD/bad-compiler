@@ -11,14 +11,21 @@
 #include "include/Yacc/Items.h"
 #include "include/Yacc/utils.h"
 
-//Edge::Edge(int _to, Token _token)
-//: to(_to), token(_token)
-//{}
-
-Constructor::Constructor(GrammarSet *_grammarSet) {
+Constructor::Constructor(GrammarSet *_grammarSet, int _numTerminal, int _numNonTerminal, int _numItem) {
     grammarSet = _grammarSet;
 
-    initPrime();
+    numTerminal = _numTerminal;
+    numNonTerminal = _numNonTerminal;
+    numItem = _numItem;
+
+    // 读入初始化
+    if(numItem) {
+        readTable();
+    }
+    // 构造初始化
+    else {
+        initPrime();
+    }
 }
 
 // 初始化素数表
@@ -282,33 +289,76 @@ void Constructor::printTable(const char* actionFile, const char* gotoFile) {
     std::ofstream actionStream(actionFile);
     std::ofstream gotoStream(gotoFile);
 
-    actionStream << std::setw(7) << "#Item";
+    actionStream << "#Item ";
     for (auto token: terminalList)
-        actionStream << std::setw(7) << token;
+        actionStream << token << ' ';
     actionStream << std::endl;
     for (int i = 0; i < itemSet.size(); ++i) {
-        actionStream << std::setw(7) << "I" << i;
+        actionStream/* << std::setw(15) */<< i << ' ';
         for (int j = 0; j < terminalList.size(); ++j) {
             if (actionTable[i][j] >= reduceSign)
-                actionStream << std::setw(7) << "r" << (actionTable[i][j] ^ reduceSign);
+                actionStream/* << std::setw(15) */<< actionTable[i][j] << ' ';
             else if (actionTable[i][j] >= 0)
-                actionStream << std::setw(7) << "s" << actionTable[i][j];
+                actionStream/* << std::setw(15) */<< actionTable[i][j] << ' ';
             else
-                actionStream << std::setw(7) << actionTable[i][j];
+                actionStream/* << std::setw(15) */<< actionTable[i][j] << ' ';
         }
         actionStream << std::endl;
     }
 
-    gotoStream << std::setw(10) << "#Item";
-    gotoStream << std::endl;
+    gotoStream << "#Item ";
     for (auto token: nonTerminalList)
-        gotoStream << std::setw(10) << token;
+        gotoStream << token << ' ';
+    gotoStream << std::endl;
     for (int i = 0; i < itemSet.size(); ++i) {
-        gotoStream << std::setw(10) << "I" << i;
+        gotoStream/* << std::setw(15) */<< i << ' ';
         for (int j = 0; j < nonTerminalList.size(); ++j) {
-            gotoStream << std::setw(10) << gotoTable[i][j];
+            gotoStream/* << std::setw(10) */<< gotoTable[i][j] << ' ';
         }
         gotoStream << std::endl;
+    }
+}
+
+void Constructor::readTable(const char* actionFile, const char* gotoFile) {
+    std::ifstream actionStream(actionFile);
+    std::ifstream gotoStream(gotoFile);
+
+    std::string line;
+    std::string stemp;
+    int itemp;
+    actionStream >> stemp;
+    for (int i = 0;i < numTerminal;++i) {
+        actionStream >> stemp;
+        terminalList.emplace_back(stemp);
+        terminalIndex[stemp] = i;
+    }
+    for (int i = 0; i < numItem; ++i) {
+        std::vector<int> vec;
+        vec.resize(0);
+        actionStream >> itemp;
+        for (int j = 0; j < numTerminal; ++j) {
+            actionStream >> itemp;
+            vec.emplace_back(itemp);
+        }
+        actionTable.emplace_back(vec);
+    }
+
+    gotoStream >> stemp;
+    for (int i = 0;i < numNonTerminal;++i) {
+        gotoStream >> stemp;
+        nonTerminalList.emplace_back(stemp);
+        nonTerminalIndex[stemp] = i;
+    }
+    for (int i = 0; i < numItem; ++i) {
+        std::vector<int> vec;
+        vec.resize(0);
+        gotoStream >> stemp;
+        itemp = std::stoi(stemp);
+        for (int j = 0; j < numNonTerminal; ++j) {
+            gotoStream >> itemp;
+            vec.emplace_back(itemp);
+        }
+        gotoTable.emplace_back(vec);
     }
 }
 
@@ -326,8 +376,8 @@ void Constructor::printItemSet(const char* filename) {
     outputFile << std::endl;
 }
 
-LALRconstructor::LALRconstructor(GrammarSet *_grammarSet)
-: Constructor(_grammarSet)
+LALRconstructor::LALRconstructor(GrammarSet *_grammarSet, int _numTerminal, int _numNonTerminal, int _numItem)
+: Constructor(_grammarSet, _numTerminal, _numNonTerminal, _numItem)
 {}
 
 void LALRconstructor::constructLR0Core() {
