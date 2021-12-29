@@ -167,7 +167,8 @@ public:
         _short,
         _long,
         _float,
-        _double
+        _double,
+        _port
     };
 
     short typeEnum;
@@ -191,6 +192,7 @@ public:
             case(_long):      return "long";
             case(_float):     return "float";
             case(_double):    return "double";
+            case(_port):      return "port";
             default:          return "invalid type";
         }
     }

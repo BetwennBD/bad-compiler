@@ -13,8 +13,10 @@ public:
     std::string type;
     std::string id;
 
+    int row, col;
+
     LexUnit();
-    LexUnit( std::string, std::string );
+    LexUnit( std::string, std::string, int = 0, int = 0 );
 };
 
 class CSTNode {

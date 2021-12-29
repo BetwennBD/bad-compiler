@@ -8,8 +8,8 @@
 
 LexUnit::LexUnit(){}
 
-LexUnit::LexUnit(std::string _id, std::string _type)
-: id(_id), type(_type)
+LexUnit::LexUnit(std::string _id, std::string _type, int _row, int _col)
+: id(_id), type(_type), row(_row), col(_col)
 {}
 
 CSTNode::CSTNode(){}
