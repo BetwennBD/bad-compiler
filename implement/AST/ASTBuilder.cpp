@@ -514,6 +514,11 @@ void ASTBuilder::quitCommonSpName(CSTNode *node) {
             dynamic_cast<QualType*>(parent)->setType(new BuiltInType(BuiltInType::_double));
             return;
         }
+        if (pnode->getType() == "PORT") {
+            dynamic_cast<QualType*>(parent)->setType(new BuiltInType(BuiltInType::_port));
+            return;
+        }
+        std::string a;
     }
 
     raiseRuleViolation("CommonSpName", parent);

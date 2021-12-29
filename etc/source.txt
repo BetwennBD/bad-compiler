@@ -1,4 +1,0 @@
-int main(int b) {
-  int* a[10][20];
-}
-#
