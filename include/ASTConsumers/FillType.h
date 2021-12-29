@@ -26,6 +26,7 @@ public:
     std::map<RecordType*,std::vector<std::string>> recordMembers;
     std::map<std::string,RecordType*>recordRef;
     std::map<RecordType*,std::vector<QualType>> recordMemberQTs;
+    RecordType* curNoTagRecord;
     FunctionDecl* curFunction;
     TranslationUnitDecl* curRoot;
     int fornum=0;
@@ -276,18 +277,31 @@ public:
                 {
                     std::cout<<"test:field\n";
                     Type* curType= curQualType.getType();
-                    //curRecordType是unkowntype，根据它的名字找到对应的struct
                     if(curType->getKind()!=Type::k_UnknownType&&curType->getKind()!=Type::k_RecordType)
                     {
                         outerror<<"Error,it is not UnknownType or RecordType in FieldSelector\n";
                         return true;
                     }
-                    std::string unkonwnName= dynamic_cast<UnknownType*>(curType)->getName();
-                    RecordType* curRecordType=new RecordType();
-                    if(recordRef.find(unkonwnName)!=recordRef.end())
-                        curRecordType=recordRef.find(unkonwnName)->second;
+                    if(curType->getKind()==Type::k_UnknownType)
+                    {
+                        std::string unkname= dynamic_cast<UnknownType*>(curType)->getName();
+                        if(recordRef.find(unkname)== recordRef.end())
+                        {
+                            curType=curNoTagRecord;
+                        }
+                        else
+                            curType=recordRef.find(unkname)->second;
+                        //TODO:局限性
+                        if(curSub->getKind()==Expr::k_DeclRefExpr)
+                        {
+                           QualType tempQT=dynamic_cast<DeclRefExpr*>(curSub)->getQualType();
+                           tempQT.setType(curType);
+                            dynamic_cast<DeclRefExpr*>(curSub)->setType(tempQT);
+                        }
+                    }
                     std::string curMemberName= dynamic_cast<FieldSelector*>(curSelector)->getName();
-                    std::vector<std::string>definedMembers=recordMembers.find(curRecordType)->second;
+                    std::vector<std::string>definedMembers=recordMembers.
+                            find(dynamic_cast<RecordType*>(curType))->second;
                     int k=0;
                     for(;k!=definedMembers.size();++k)
                     {
@@ -304,7 +318,7 @@ public:
                         std::cout<<"add idx "<<k<<" to member "<<definedMembers[k]<<"\n";
                         dynamic_cast<FieldSelector*>(curSelector)->setIdx(k);
                         std::vector<QualType> tempQualTypes=recordMemberQTs.
-                                find(dynamic_cast<RecordType*>(curRecordType))->second;
+                                find(dynamic_cast<RecordType*>(curType))->second;
                         curQualType.setType(tempQualTypes[k].getType());
                         break;
                     }
@@ -317,34 +331,99 @@ public:
     }
     bool visitRecordDecl(RecordDecl* D)
     {
+        //处理struct和union
         std::cout<<"test: visit record decl\n";
-        if(D->isStruct())
+        RecordType* curRecordType=new RecordType(D->isStruct());
+        std::vector<std::string> memberNames;
+        std::vector<QualType>memberQTs;
+        for(int i=0;i!=D->getNumDeclStmts();++i)
         {
-            RecordType* curRecordType=new RecordType(D->isStruct());
-            std::vector<std::string> memberNames;
-            std::vector<QualType>memberQTs;
-            for(int i=0;i!=D->getNumDeclStmts();++i)
+            DeclStmt* curDeclStmt=D->getDeclStmt(i);
+            for(int j=0;j!=curDeclStmt->getNumDecls();++j)
             {
-                DeclStmt* curDeclStmt=D->getDeclStmt(i);
-                for(int j=0;j!=curDeclStmt->getNumDecls();++j)
-                {
-                    VarDecl* curVarDecl=curDeclStmt->getDecl(j);
-                    curRecordType->addMember(curVarDecl->getQualType());
-                    memberNames.push_back(curVarDecl->getName());
-                    memberQTs.push_back(curVarDecl->getQualType());
-                }
+                VarDecl* curVarDecl=curDeclStmt->getDecl(j);
+                curRecordType->addMember(curVarDecl->getQualType());
+                memberNames.push_back(curVarDecl->getName());
+                memberQTs.push_back(curVarDecl->getQualType());
             }
-            if(D->hasTag())
+        }
+        if(D->hasTag())
+        {
+            recordMembers.insert(std::make_pair(curRecordType,memberNames));
+            recordRef.insert(std::make_pair(D->getName(),curRecordType));
+            recordMemberQTs.insert(std::make_pair(curRecordType,memberQTs));
+        }
+        else
+        {
+            curNoTagRecord=curRecordType;
+            recordMembers.insert(std::make_pair(curRecordType,memberNames));
+            recordMemberQTs.insert(std::make_pair(curRecordType,memberQTs));
+        }
+        return true;
+    }
+    bool visitVarDecl(VarDecl* D)
+    {
+        //清理unkonwnType,记得分清楚返回的是指针还是拷贝
+        std::string curName=D->getName();
+        QualType newQT=D->getQualType();
+        Type * tempType=newQT.getType();
+        Type* hh=new Type();
+        bool  onetype=true;
+       while(tempType->getKind()!=Type::k_BuiltInType
+             &&tempType->getKind()!=Type::k_UnknownType)
+        {
+            onetype=false;
+           if(tempType->getKind()==Type::k_VariableArrayType)
+          {
+             hh=tempType;
+             tempType= dynamic_cast<VariableArrayType*>(tempType)->getElementType();
+           }
+           else if(tempType->getKind()==Type::k_PointerType)
+           {
+               hh=tempType;
+               tempType= dynamic_cast<PointerType*>(tempType)->getPointeeType()->getType();
+           }
+           else
+               break;
+        }
+        if(tempType->getKind()==Type::k_UnknownType)
+        {
+            std::cout<<"test: vardecl changes unknown type\n";
+            std::string unknownName= dynamic_cast<UnknownType*>(tempType)->getName();
+            if(recordRef.find(unknownName)!=recordRef.end())
             {
-                recordMembers.insert(std::make_pair(curRecordType,memberNames));
-                recordRef.insert(std::make_pair(D->getName(),curRecordType));
-                recordMemberQTs.insert(std::make_pair(curRecordType,memberQTs));
+                RecordType* B=recordRef.find(unknownName)->second;
+                if(hh->getKind()==Type::k_VariableArrayType)
+                    dynamic_cast<VariableArrayType*>(hh)->setElementType(B);
+                else if(hh->getKind()==Type::k_PointerType)
+                {
+                    QualType*t= dynamic_cast<PointerType*>(hh)->getPointeeType();
+                    t->setType(B);
+                }
+                if(onetype)
+                {
+                    newQT.setType(B);
+                }
+                D->setQualType(newQT);
             }
             else
             {
-                //todo:对于无名struct
+                RecordType* B=curNoTagRecord;
+                if(hh->getKind()==Type::k_VariableArrayType)
+                    dynamic_cast<VariableArrayType*>(hh)->setElementType(B);
+                else if(hh->getKind()==Type::k_PointerType)
+                {
+                    QualType*t= dynamic_cast<PointerType*>(hh)->getPointeeType();
+                    t->setType(B);
+                }
+                if(onetype)
+                {
+                    newQT.setType(B);
+                }
+                D->setQualType(newQT);
             }
         }
+        return true;
     }
     ~FillType()
     {

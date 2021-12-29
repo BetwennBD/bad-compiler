@@ -27,7 +27,6 @@ public:
     }
     void outForSA(SelectorArray* E)
     {
-
         //输出格式: int [30], *(students[t].name)
         std::string outFormat="";
         int numSelectors=E->getNumSelectors();
@@ -103,32 +102,63 @@ public:
         }
         else if(cType->getKind()==Type::k_IncompleteArrayType)
         {
-            std::cout<<"it is incomlete";
-
-            /*if(dynamic_cast<IncompleteArrayType*>(cType)->getElementType()== nullptr)
-            {
-                std::cout<<"its element\n";
-                return;
-            }
-            Type *eleType= dynamic_cast<IncompleteArrayType*>(cType)->getElementType();
-            if(dynamic_cast<IncompleteArrayType*>(cType)->getElementType()== nullptr)
-            {
-                std::cout<<"its element type is nullptr\n";
-                return;
-            }
-            std::cout<< dynamic_cast<BuiltInType*>(eleType)->getTypeTypeAsString()<<"[]";*/
+            std::cout<<"IncompleteArray";
         }
         else if(cType->getKind()==Type::k_VariableArrayType)
         {
-            std::cout<<"variable array";
+            std::string  record;
+            bool recordFlag=false;
             Type *eleType= dynamic_cast<VariableArrayType*>(cType)->getElementType();
-            std::cout<< dynamic_cast<BuiltInType*>(eleType)->getTypeTypeAsString()<<"[expr]";
+            std::vector<int> dimensionLength;
+            dimensionLength.push_back(1);
+            while(eleType->getKind()!=Type::k_BuiltInType)
+            {
+                if(eleType->getKind()==Type::k_VariableArrayType)
+                {
+                    dimensionLength.push_back(1);
+                    eleType= dynamic_cast<VariableArrayType*>(eleType)->getElementType();
+                }
+                else if(eleType->getKind()==Type::k_PointerType)
+                {
+                    dimensionLength.push_back(-1);
+                    eleType= dynamic_cast<PointerType*>(eleType)->getPointeeType()->getType();
+                }
+                else if(eleType->getKind()==Type::k_RecordType)
+                {
+                    dimensionLength.push_back(0);
+                    record=dynamic_cast<RecordType*>(eleType)->getName();
+                    recordFlag=true;
+                    break;
+                }
+                else
+                {
+                    std::cout<<(short)eleType->getKind();
+                    std::cout<<" invalid type";
+                    return;
+                }
+
+            }
+            std::string basicType;
+            if(!recordFlag)
+                basicType= dynamic_cast<BuiltInType*>(eleType)->getTypeTypeAsString();
+            std::string wholeType;
+            for(int i=0;i!=dimensionLength.size();++i)
+            {
+                if(dimensionLength[i]==1)
+                    wholeType=wholeType+"[expr]";
+                else if(dimensionLength[i]==-1)
+                    wholeType="*("+wholeType+")";
+                else if(dimensionLength[i]==0)
+                    wholeType="struct"+record+wholeType;
+            }
+            if(!recordFlag)
+                wholeType=basicType+wholeType;
+            std::cout<<wholeType;
         }
         else if(cType->getKind()==Type::k_ConstArrayType)
         {
            std::string  record;
             bool recordFlag=false;
-            std::cout<<"const array ";
             Type *eleType= dynamic_cast<ConstArrayType*>(cType)->getElementType();
             std::vector<int> dimensionLength;
             dimensionLength.push_back(dynamic_cast<ConstArrayType*>(cType)->getLength());
@@ -176,16 +206,19 @@ public:
               wholeType=basicType+wholeType;
             std::cout<<wholeType;
         }
+        else if(cType->getKind()==Type::k_RecordType)
+        {
+            std::cout<<"struct";
+        }
         else
         {
-            std::cout<<"Error,invalid type: "<<(short)cType->getKind()<<"\n";
+            std::cout<<(short)cType->getKind();
         }
         std::cout << ")";
     }
 
     bool visitTranslationUnitDecl(TranslationUnitDecl *D) {
         std::cout << "TranslationUnitDecl\n";
-        std::cout<<"do not support 2 dimensional array in outtype\n";
         return true;
     }
     bool cleanupTranslationUnitDecl() {
