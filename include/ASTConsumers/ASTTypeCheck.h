@@ -146,10 +146,15 @@ public:
         //获取函数名称和类型
         if(E->getArg(0)->getKind()!=Stmt::k_DeclRefExpr)
         {
-            std::cerr<<"Error, check if the first parameter is declrefexpr"<<std::endl;
+            outerror<<"Error, check if the first parameter is declrefexpr"<<std::endl;
             return true;
         }
         //call的原函数，declrefexpr已经将自己的type变成函数的rettype了，可以放心使用
+        if(E->getArg(0)->getKind()!=Expr::k_DeclRefExpr)
+        {
+            outerror<<"Error, the first param in callexpr should be function in ast\n";
+            return true;
+        }
         DeclRefExpr* function= dynamic_cast<DeclRefExpr* >(E->getArg(0));
         std::string funcName=function->getRefName();
         QualType funcType=function->getQualType();
