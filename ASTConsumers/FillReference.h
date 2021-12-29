@@ -22,6 +22,10 @@ public:
     std::vector<FunctionDecl>allFunctions;
     FunctionDecl* curFunction;
     TranslationUnitDecl* curRoot;
+    //为struct而设置的
+    std::map<RecordType*,std::vector<std::string>> recordMembers;
+    std::map<std::string,RecordType*>recordRef;
+    std::map<RecordType*,std::vector<QualType>> recordMemberQTs;
     int fornum=0;
     int fornew=0;
     std::ofstream outerror;
@@ -40,50 +44,51 @@ public:
     bool visitVarDecl(VarDecl* D)
     {
         //变量声明，考虑了全局和局部两种情况
-        //针对用函数返回值声明数组大小的时候做的检查
-        Type* tempType=D->getQualType().getType();
+        std::string curName=D->getName();
+        QualType curType=D->getQualType();
+        //清理unkonwnType,记得分清楚返回的是指针还是拷贝
+        QualType newQT=D->getQualType();
+        Type * tempType=newQT.getType();
+        Type* hh=new Type();
         while(tempType->getKind()!=Type::k_BuiltInType
-              ||tempType->getKind()!=Type::k_UnknownType)
+        ||tempType->getKind()!=Type::k_UnknownType)
         {
             if(tempType->getKind()==Type::k_VariableArrayType)
             {
-                Expr*curSizeExpr= dynamic_cast<VariableArrayType*>(tempType)->getSizeExpr();
-                if(curSizeExpr->getKind()==Expr::k_CallExpr)
-                {
-                    for(int i=0;i!=allFunctions.size();++i)
-                    {
-                        FunctionDecl  temp= allFunctions[i];
-                        std::string qname=temp.getName();
-                        Expr* qcallfunc= dynamic_cast<CallExpr* >(curSizeExpr)->getArg(0);
-                        std::string qcallname= dynamic_cast<DeclRefExpr*>(qcallfunc)->getRefName();
-                        if(qcallname==qname)
-                        {
-                            bool curFlag=false;
-                            Type * curTemp=allFunctions[i].getQualType().getType();
-                            if(curTemp->getKind()==Type::k_BuiltInType)
-                            {
-                                if(dynamic_cast<BuiltInType*>(curTemp)->getTypeType()==BuiltInType::_int)
-                                    curFlag=true;
-                            }
-                            if(!curFlag)
-                            {
-                                outerror<<"Error, array size should be an integer\n";
-                            }
-                        }
-                    }
-
-                }
+                hh=tempType;
                 tempType= dynamic_cast<VariableArrayType*>(tempType)->getElementType();
             }
             else if(tempType->getKind()==Type::k_PointerType)
             {
+                hh=tempType;
                 tempType= dynamic_cast<PointerType*>(tempType)->getPointeeType()->getType();
             }
             else
                 break;
         }
-        std::string curName=D->getName();
-        QualType curType=D->getQualType();
+        if(tempType->getKind()==Type::k_UnknownType)
+        {
+            std::cout<<"test: vardecl changes unknown type\n";
+            std::string unknownName= dynamic_cast<UnknownType*>(tempType)->getName();
+            if(recordRef.find(unknownName)!=recordRef.end())
+            {
+               /*RecordType* A=new RecordType();
+               RecordType* B=recordRef.find(unknownName)->second;
+               A->name=B->getName();
+               for(int i=0;i!=B->getNumMembers();++i)
+               {
+                   A->addMember(B->getMember(i));
+               }
+               if(B->isStruct())
+               A->setStruct();
+               dynamic_cast<VariableArrayType*>(hh)->setElementType(A);
+               D->setQualType(newQT);*/
+            }
+            else
+            {
+                //无名struct，后面再想想咋整
+            }
+        }
         if(fornum==fornew)
         {
             if (tables.empty())
@@ -198,62 +203,36 @@ public:
         }
         return  true;
     }
-    bool visitSelectorArray(SelectorArray*E)
+    bool visitRecordDecl(RecordDecl* D)
     {
-        if(!E->hasSubExpr())
+        std::cout<<"test: visit record decl\n";
+        if(D->isStruct())
         {
-            outerror<<"Error, this SelectorArray doesn't hava a subexpr\n";
-            return true;
-        }
-        int numSelectors=E->getNumSelectors();
-        std::vector<Selector*> curSelectors=E->getSelectors();
-        Expr* curSub=E->getSubExpr();
-        for(int i=0;i!=numSelectors;++i)
-        {
-            Selector * curSelector=curSelectors[i];
-            switch (curSelector->getKind())
+            RecordType* curRecordType=new RecordType(D->isStruct());
+            std::vector<std::string> memberNames;
+            std::vector<QualType>memberQTs;
+            for(int i=0;i!=D->getNumDeclStmts();++i)
             {
-                case Expr::k_DerefSelector:
+                DeclStmt* curDeclStmt=D->getDeclStmt(i);
+                for(int j=0;j!=curDeclStmt->getNumDecls();++j)
                 {
-                    curSub=curSelector->getSubExpr();
-                    break;
-                }
-                case Expr::k_IndexSelector:
-                {
-                    Expr* curidx=dynamic_cast<IndexSelector*>
-                            (curSelector)->getIdxExpr();
-                    if(curidx->getKind()==Expr::k_CallExpr) {
-                        for (int i = 0; i != allFunctions.size(); ++i) {
-                            FunctionDecl temp = allFunctions[i];
-                            std::string qname = temp.getName();
-                            Expr *qcallfunc = dynamic_cast<CallExpr * >(curidx)->getArg(0);
-                            std::string qcallname = dynamic_cast<DeclRefExpr *>(qcallfunc)->getRefName();
-                            if (qcallname == qname) {
-                                bool curFlag = false;
-                                Type *curTemp = allFunctions[i].getQualType().getType();
-                                if (curTemp->getKind() == Type::k_BuiltInType) {
-                                    if (dynamic_cast<BuiltInType *>(curTemp)->getTypeType() == BuiltInType::_int)
-                                        curFlag = true;
-                                }
-                                if (!curFlag) {
-                                    outerror << "Error, array index should be an integer\n";
-                                }
-                            }
-                        }
-                    }
-                    curSub=curSelector->getSubExpr();
-                    break;
-                }
-                case Expr::k_FieldSelector:
-                {
-                    curSub=curSelector->getSubExpr();
-                    break;
+                    VarDecl* curVarDecl=curDeclStmt->getDecl(j);
+                    curRecordType->addMember(curVarDecl->getQualType());
+                    memberNames.push_back(curVarDecl->getName());
+                    memberQTs.push_back(curVarDecl->getQualType());
                 }
             }
+            if(D->hasTag())
+            {
+                recordMembers.insert(std::make_pair(curRecordType,memberNames));
+                recordRef.insert(std::make_pair(D->getName(),curRecordType));
+                recordMemberQTs.insert(std::make_pair(curRecordType,memberQTs));
+            }
+            else
+            {
+                //todo:对于无名struct
+            }
         }
-
-
-        return true;
     }
     bool visitBinaryOperator(BinaryOperator* E)
     {

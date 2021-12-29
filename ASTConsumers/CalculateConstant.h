@@ -365,8 +365,6 @@ public:
     }
     bool visitDeclRefExpr(DeclRefExpr*D)
     {
-        //添加一个矫正unknowntype的declrefexpr
-
         //这里是因为一开始的fillrefernce没有对varaiable和constant做区分
         if(forRefArray.find(D->getRefName())!=forRefArray.end())
         {
