@@ -8,12 +8,14 @@
 #include <string>
 #include <vector>
 
+#include "include/DebugInfo/SourceLocation.h"
+
 class LexUnit {
 public:
     std::string type;
     std::string id;
 
-    int row, col;
+    SourceLocation sourceLoc;
 
     LexUnit();
     LexUnit( std::string, std::string, int = 0, int = 0 );
@@ -29,12 +31,14 @@ private:
     // 这时需要靠相对位置来判断其语义
     int familyPos;
 
+    SourceLocation sourceLoc;
+
 public:
     std::vector< CSTNode* > children;
 
     CSTNode();
 
-    CSTNode(int, std::string, std::string );
+    CSTNode(int, std::string, std::string, SourceLocation );
 
     bool isTerminal() const { return termType == 0; }
 
@@ -59,6 +63,8 @@ public:
     int getFamilyPos() const { return familyPos; }
 
     void setFamilyPos( int _pos ) { familyPos = _pos; }
+
+    SourceLocation getSourceLoc() const { return sourceLoc; }
 };
 
 void printCST( CSTNode*, int );

@@ -28,6 +28,8 @@
 #include <string>
 #include <vector>*/
 
+#include "include/DebugInfo/SourceLocation.h"
+
 class AbstractASTNode {
 protected:
     enum BasicKind : short {
@@ -39,6 +41,9 @@ protected:
     short basicKind;
 
 public:
+    SourceLocation sourceLoc;
+
+public:
     AbstractASTNode() {}
 
     virtual ~AbstractASTNode() {}
@@ -48,6 +53,10 @@ public:
     bool isStmt() const { return basicKind == BasicKind::bk_Stmt; }
 
     bool isQualType() const { return basicKind == BasicKind::bk_QualType; }
+
+    void setSourceLoc(SourceLocation _sourceLoc) { sourceLoc = _sourceLoc; }
+
+    SourceLocation getSourceLoc() const { return sourceLoc; }
 
 //    virtual Value* codeGen() {}
 };

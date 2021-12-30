@@ -35,7 +35,7 @@ CSTNode* CSTBuilder::constructCST(std::vector<LexUnit> lexInput, int verbose) {
     while(true) {
         // 发生错误
         if(i >= inputLen) {
-            std::cout << "An error occurred in parser: ";
+            std::cout << "In parser: ";
             std::cout << "program not complete.\n";
             return NULL;
         }
@@ -47,16 +47,17 @@ CSTNode* CSTBuilder::constructCST(std::vector<LexUnit> lexInput, int verbose) {
         // 发生错误
         if(next == -1) {
             std::cout << "In Parser: ";
-            std::cout << "run into illegal entry.\n";
-            std::cout << "curState is: I" <<  curState << std::endl;
-            std::cout << "curUnit is : ( " << unit.type << " , " << unit.id << " )" << std::endl;
+            std::cout << "invalid syntax.\n";
+//            std::cout << "curState is: I" <<  curState << std::endl;
+            std::cout << "At <row:" << unit.sourceLoc.row << " , col:" << unit.sourceLoc.col << "> : ";
+            std::cout << "(" << unit.type << " , " << unit.id << ")" << std::endl;
             return NULL;
         }
 
         // 移入
         if((next & reduceSign) == 0) {
             stateStack.push(next);
-            CSTNode *node = new CSTNode(0, unit.id, unit.type);
+            CSTNode *node = new CSTNode(0, unit.id, unit.type, unit.sourceLoc);
             nodeStack.push(node);
             if(verbose) {
                 std::cout << "shift : ( " << unit.type << " , " << unit.id << " )" << std::endl;
@@ -68,7 +69,7 @@ CSTNode* CSTBuilder::constructCST(std::vector<LexUnit> lexInput, int verbose) {
         else if(next != reduceSign) {
             int id = next ^ reduceSign;
             Producer producer = grammarSet->getProducer(id);
-            CSTNode* pNode = new CSTNode(1, "", producer.first);
+            CSTNode* pNode = new CSTNode(1, "", producer.first, unit.sourceLoc);
             pNode->setListener(grammarSet->getListener(id));
             int producerSiz = producer.second.size();
             for(int j = 0;j < producerSiz;++j) {

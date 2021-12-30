@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <cstring>
 
 #include "include/Yacc/Grammar.h"
 #include "include/Yacc/GrammarParser.h"
@@ -33,6 +34,34 @@
 #include "llvm/Support/SourceMgr.h"
 
 int main(int Argc, const char **Argv) {
+    bool print_ast = false;
+    bool print_llvm_ir = false;
+
+    std::vector<std::string> iFileNames;
+    std::vector<std::string> oFileNames;
+
+
+    for(int i = 1;i < Argc;++i) {
+        if(strcmp(Argv[i], "--help") == 0) {
+            return 0;
+        }
+        else if(strcmp(Argv[i], "--print-ast") == 0)
+            print_ast = true;
+        else if(strcmp(Argv[i], "--print-llvm-ir") == 0)
+            print_llvm_ir = true;
+        else {
+            std::string iFileName = std::string(Argv[i]);
+            iFileNames.emplace_back(iFileName);
+            std::string oFileName = iFileName;
+            int pos = oFileName.find(".txt");
+            if(pos == std::string::npos) {
+                llvm::errs() << "Illegal File Type";
+            }
+            oFileName.replace(pos, 4, ".asm");
+            oFileNames.emplace_back(oFileName);
+        }
+    }
+
     llvm::InitLLVM X(Argc, Argv);
 
     llvm::InitializeAllTargets();
@@ -67,39 +96,22 @@ int main(int Argc, const char **Argv) {
     auto targetMachine =
             Target->createTargetMachine(targetTriple, CPU, Features, opt, RM);
 
-    auto Filename = "../output/out.s";
-    std::error_code EC;
-    llvm::raw_fd_ostream dest(Filename, EC, llvm::sys::fs::OF_None);
-
-    if (EC) {
-        llvm::errs() << "Could not open file: " << EC.message();
-        return 1;
-    }
-
-    llvm::legacy::PassManager pass;
-    auto FileType = llvm::CGFT_AssemblyFile;
-
-    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
-        llvm::errs() << "TheTargetMachine can't emit a file of this type";
-        return 1;
-    }
-
-    for (int i = 0;i < 1;++i) {
+    for (int i = 0;i < iFileNames.size();++i) {
         Lexer lexer;
-        std::vector<LexUnit> lexVec = lexer.getAnalysis("../input/source.txt");
+        std::vector<LexUnit> lexVec = lexer.getAnalysis(iFileNames[i]);
 
         CSTBuilder cstBuilder(&lalrConstructor, &grammarSet);
         CSTNode *cst = cstBuilder.constructCST(lexVec, 0);
         if(cst == NULL) {
-            std::cout << "create CST failed";
-            return 0;
+            llvm::errs() << "create CST failed\n";
+            return 1;
         }
 
         ASTBuilder astBuilder;
         TranslationUnitDecl* ast = astBuilder.constructAST(cst);
         if(ast == NULL) {
-            std::cout << "create CST failed";
-            return 0;
+            llvm::errs() << "create CST failed\n";
+            return 1;
         }
 
         FillReference fillReference;
@@ -111,11 +123,30 @@ int main(int Argc, const char **Argv) {
         ASTTypeCheck astTypeCheck;
         astTypeCheck.traverseTranslationUnitDecl(ast);
 
-        ASTDumper astDumper;
-        astDumper.traverseTranslationUnitDecl(ast);
+        if(print_ast) {
+            ASTDumper astDumper;
+            astDumper.traverseTranslationUnitDecl(ast);
+        }
 
-        IRGenerator irGenerator(targetTriple, targetMachine->createDataLayout(), "../etc/source.txt");
-        irGenerator.emitLLVMIR(ast);
+        auto oFilename = oFileNames[i];
+        std::error_code EC;
+        llvm::raw_fd_ostream dest(oFilename, EC, llvm::sys::fs::OF_None);
+
+        if (EC) {
+            llvm::errs() << "Could not open file: " << EC.message();
+            return 1;
+        }
+
+        llvm::legacy::PassManager pass;
+        auto FileType = llvm::CGFT_AssemblyFile;
+
+        if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+            llvm::errs() << "TheTargetMachine can't emit a file of this type\n";
+            return 1;
+        }
+
+        IRGenerator irGenerator(targetTriple, targetMachine->createDataLayout(), iFileNames[i]);
+        irGenerator.emitLLVMIR(ast, print_llvm_ir);
 
         pass.run(*irGenerator.getModule());
         dest.flush();

@@ -9,13 +9,13 @@
 LexUnit::LexUnit(){}
 
 LexUnit::LexUnit(std::string _id, std::string _type, int _row, int _col)
-: id(_id), type(_type), row(_row), col(_col)
+: id(_id), type(_type), sourceLoc(_row, _col)
 {}
 
 CSTNode::CSTNode(){}
 
-CSTNode::CSTNode(int _termType, std::string _id, std::string _type)
-: termType(_termType), id(_id), type(_type)
+CSTNode::CSTNode(int _termType, std::string _id, std::string _type, SourceLocation _sourceLoc)
+: termType(_termType), id(_id), type(_type), sourceLoc(_sourceLoc)
 {
     familyPos = 0;
     // 默认监听器无动作

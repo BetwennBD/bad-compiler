@@ -1081,7 +1081,7 @@ void ASTBuilder::enterReturn( CSTNode* node ) {
 }
 
 void ASTBuilder::quitReturn( CSTNode* node ) {
-    SEC_GET_STMT(ReturnStmt);
+    SEC_GET_STMT(ReturnStmt)
 
     AbstractASTNode *parent = nodeStack.top();
     if(parent->isStmt() && dynamic_cast<Stmt*>(parent)->getKind() == Stmt::k_VirtualStmt) {
@@ -1099,7 +1099,7 @@ void ASTBuilder::enterFuncDef( CSTNode* node ) {
 }
 
 void ASTBuilder::quitFuncDef( CSTNode* node ) {
-    SEC_GET_DECL(FunctionDecl);
+    SEC_GET_DECL(FunctionDecl)
 
     AbstractASTNode *parent = nodeStack.top();
     if(parent->isDecl() && dynamic_cast<Decl*>(parent)->getKind() == Decl::k_TranslationUnitDecl) {
