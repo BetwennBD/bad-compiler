@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <fstream>
 #include <cstring>
 
 #include "include/Yacc/Grammar.h"
@@ -13,8 +14,9 @@
 #include "include/ASTConsumers/FillReference.h"
 #include "include/ASTConsumers/CalculateConstant.h"
 #include "include/ASTConsumers/ASTTypeCheck.h"
+#include "include/ASTConsumers/AddVarImplicit.h"
 #include "include/Lexer/Lexer.h"
-#include "include/ASTConsumers/IRGenerator.h"
+#include "include/IRGenerator/IRGenerator.h"
 
 #include "llvm/CodeGen/CommandFlags.h"
 #include "llvm/IR/IRPrintingPasses.h"
@@ -56,6 +58,7 @@ int main(int Argc, const char **Argv) {
             int pos = oFileName.find(".txt");
             if(pos == std::string::npos) {
                 llvm::errs() << "Illegal File Type";
+                return 0;
             }
             oFileName.replace(pos, 4, ".asm");
             oFileNames.emplace_back(oFileName);
@@ -97,6 +100,13 @@ int main(int Argc, const char **Argv) {
             Target->createTargetMachine(targetTriple, CPU, Features, opt, RM);
 
     for (int i = 0;i < iFileNames.size();++i) {
+        std::ifstream testOpenFile(iFileNames[i]);
+        if(!testOpenFile) {
+            llvm::errs() << "Could not find input file: " << iFileNames[i] << "\n";
+            return 1;
+        }
+        testOpenFile.close();
+
         Lexer lexer;
         std::vector<LexUnit> lexVec = lexer.getAnalysis(iFileNames[i]);
 
@@ -122,6 +132,8 @@ int main(int Argc, const char **Argv) {
         calculateConstant.traverseTranslationUnitDecl(ast);
         ASTTypeCheck astTypeCheck;
         astTypeCheck.traverseTranslationUnitDecl(ast);
+        AddVarImplicit addVarImplicit;
+        addVarImplicit.traverseTranslationUnitDecl(ast);
 
         if(print_ast) {
             ASTDumper astDumper;

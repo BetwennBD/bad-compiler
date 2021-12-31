@@ -7,7 +7,7 @@
 #include "include/Yacc/Grammar.h"
 #include "include/Yacc/GrammarParser.h"
 #include "include/Yacc/Constructor.h"
-#include "include/ASTConsumers/IRGenerator.h"
+#include "include/IRGenerator/IRGenerator.h"
 
 int main() {
     clock_t start, end;

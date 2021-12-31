@@ -629,6 +629,7 @@ void ASTBuilder::quitTypeQf(CSTNode *node) {
 }
 
 // 处理变量定义语句中的具体变量定义
+// 处理函数定义
 void ASTBuilder::enterDeclarator(CSTNode *node) {
     VarDecl *varDecl = new VarDecl();
     nodeStack.push(varDecl);
@@ -843,6 +844,24 @@ void ASTBuilder::quitIncompleteArray(CSTNode *node) {
 
 // 处理指针定义
 void ASTBuilder::enterPointer(CSTNode *) {
+    AbstractASTNode *parent = nodeStack.top();
+
+    if(auto p = dynamic_cast<ParamVarDecl*>(parent)) {
+        PointerType *newType = new PointerType();
+        QualType *pN = new QualType(p->getQualType());
+        newType->setPointeeType(pN);
+        p->setQualType(QualType(newType));
+        return;
+    }
+    else if(auto p = dynamic_cast<FunctionDecl*>(parent)) {
+        PointerType *newType = new PointerType();
+        QualType *pN = new QualType(p->getQualType());
+        newType->setPointeeType(pN);
+        p->setQualType(QualType(newType));
+        return;
+    }
+
+    // DeclStmt
     PointerType *newType = new PointerType();
     QualType *pDeclTypeCp = new QualType(declTypeCp);
     newType->setPointeeType(pDeclTypeCp);

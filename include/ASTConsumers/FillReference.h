@@ -25,16 +25,22 @@ public:
     int fornum=0;
     int fornew=0;
     std::ofstream outerror;
+    std::ofstream zqtest;
+    bool success=true;
     FillReference()
             : RecursiveASTVisitor()
     {
         outerror.open("../output/OutforErrors.txt", std::ios::out);
+        zqtest.open("../output/zqtest.txt", std::ios::out);
+        zqtest.close();
+        zqtest.open("../output/zqtest.txt", std::ios::app);
+        zqtest<<"fillreference************\n";
         tables.clear();
     }
     bool visitTranslationUnitDecl(TranslationUnitDecl*D)
     {
         curRoot=D;
-        std::cout<<"alloha"<<std::endl;
+        zqtest<<"alloha"<<std::endl;
         return true;
     }
     bool visitVarDecl(VarDecl* D)
@@ -68,6 +74,7 @@ public:
                             if(!curFlag)
                             {
                                 outerror<<"Error, array size should be an integer\n";
+                                success=false;
                             }
                         }
                     }
@@ -86,20 +93,36 @@ public:
         QualType curType=D->getQualType();
         if(fornum==fornew)
         {
-            if (tables.empty())
+            if(curRoot->checkSymbol(curName,curType))
             {
-                curRoot->addSymbol(curName, curType);
+                success=false;
+               // outerror<<"Error,"<<curName<<" has already declared!\n";
+                return true;
             }
-            else{
+            curRoot->addSymbol(curName, curType);
+            if(!tables.empty())
+            {
                 curFunction = tables[tables.size() - 1];
+                if(curFunction->checkSymbol(curName,curType))
+                {
+                    success=false;
+                    //outerror<<"Error,"<<curName<<" has already declared!\n";
+                    return true;
+                }
                 curFunction->addSymbol(curName, curType);
             }
         }
         else
         {
-            std::cout<<"it is in for\n";
+            zqtest<<"it is in for\n";
             fornew++;
             curFunction = tables[tables.size() - 1];
+            if(curFunction->checkSymbol(curName,curType))
+            {
+               // outerror<<"Error,"<<curName<<" has already declared!\n";
+                success=false;
+                return true;
+            }
             curFunction->addSymbol(curName, curType);
         }
         return true;
@@ -109,6 +132,12 @@ public:
         curFunction=tables[tables.size() - 1];
         QualType curType = D->getQualType();
         std::string curName = D->getName();
+        if(curFunction->checkSymbol(curName,curType))
+        {
+           // outerror<<"Error,"<<curName<<" has already declared!\n";
+            success=false;
+            return true;
+        }
         dynamic_cast<DeclContext*>(curFunction)->addSymbol(curName,curType);
         return true;
     }
@@ -116,7 +145,7 @@ public:
     {
         tables.push_back(D);
         allFunctions.push_back(*D);
-        std::cout<<"let us add a new function "<<D->getName()<<std::endl;
+        zqtest<<"let us add a new function "<<D->getName()<<std::endl;
         std::map<std::string, QualType>* firsttable=new std::map<std::string, QualType>();
         firsttable->clear();
         if(D->getNumParams()!=0)
@@ -151,7 +180,7 @@ public:
         //这里是根据引用的原信息填充它的类型，不涉及检查类型
         bool flag=true;
         std::string curName=E->getRefName();
-        std::cout<<"now in declref, "<<curName<<"\n";
+        zqtest<<"now in declref, "<<curName<<"\n";
         ValueDecl* v=E->getValueDecl();
         QualType curType;
         curFunction=tables[tables.size()-1];
@@ -172,9 +201,9 @@ public:
                     }
                     else
                     {
-                        std::cout<<"it is a function ";
+                        zqtest<<"it is a function ";
                         Type* t=curType.getType();
-                        std::cout<<dynamic_cast<BuiltInType*> (t)->getTypeTypeAsString()<<"\n";
+                        zqtest<<dynamic_cast<BuiltInType*> (t)->getTypeTypeAsString()<<"\n";
                         flag=true;
                         break;
                     }
@@ -186,11 +215,12 @@ public:
         {
             E->setType(curType);
             E->setValueKind(ExprValueKind::LValue);
-            std::cout<<curName<<" is LValue\n";
+            zqtest<<curName<<" is LValue\n";
         }
         else
         {
-            outerror<<"Error,"+curName+" is an invalid reference\n";
+           outerror<<"Error,"+curName+" is an invalid reference\n";
+            success=false;
             BuiltInType* newType=new BuiltInType(BuiltInType::_long);
             QualType newQualType(newType);
             newQualType.setConst();
@@ -203,6 +233,7 @@ public:
         if(!E->hasSubExpr())
         {
             outerror<<"Error, this SelectorArray doesn't hava a subexpr\n";
+            success=false;
             return true;
         }
         int numSelectors=E->getNumSelectors();
@@ -236,6 +267,7 @@ public:
                                         curFlag = true;
                                 }
                                 if (!curFlag) {
+                                    success=false;
                                     outerror << "Error, array index should be an integer\n";
                                 }
                             }
@@ -278,9 +310,16 @@ public:
         curFunction->exitCurSymbolTable();
         return true;
     }
+    bool isSuccessful()
+    {
+        return success;
+    }
     ~FillReference()
     {
+        curRoot->clearSymbolTable();
         outerror.close();
+        zqtest<<"\n";
+        zqtest.close();
     }
 };
 #endif //FRONTEND_FILLREFERENCE_H

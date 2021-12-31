@@ -149,7 +149,7 @@ public:
                 else if(dimensionLength[i]==-1)
                     wholeType="*("+wholeType+")";
                 else if(dimensionLength[i]==0)
-                    wholeType="struct"+record+wholeType;
+                    wholeType="struct "+record+wholeType;
             }
             if(!recordFlag)
                 wholeType=basicType+wholeType;
@@ -200,7 +200,7 @@ public:
                 else if(dimensionLength[i]==-1)
                     wholeType="*("+wholeType+")";
                 else if(dimensionLength[i]==0)
-                    wholeType="struct"+record+wholeType;
+                    wholeType="struct "+record+wholeType;
             }
             if(!recordFlag)
               wholeType=basicType+wholeType;
@@ -210,6 +210,62 @@ public:
         {
             std::cout<<"struct";
         }
+        else if(cType->getKind()==Type::k_PointerType)
+        {
+            std::string  record;
+            bool recordFlag=false;
+            Type *eleType= dynamic_cast<PointerType*>(cType)->getPointeeType()->getType();
+            std::vector<int> dimensionLength;
+            dimensionLength.push_back(-1);
+            while(eleType->getKind()!=Type::k_BuiltInType)
+            {
+                if(eleType->getKind()==Type::k_ConstArrayType)
+                {
+                    dimensionLength.push_back(dynamic_cast<ConstArrayType*>(eleType)->getLength());
+                    eleType= dynamic_cast<ConstArrayType*>(eleType)->getElementType();
+                }
+                else if(eleType->getKind()==Type::k_PointerType)
+                {
+                    dimensionLength.push_back(-1);
+                    eleType= dynamic_cast<PointerType*>(eleType)->getPointeeType()->getType();
+                }
+                else if(eleType->getKind()==Type::k_RecordType)
+                {
+                    dimensionLength.push_back(0);
+                    record=dynamic_cast<RecordType*>(eleType)->getName();
+                    recordFlag=true;
+                    break;
+                }
+                else
+                {
+                    std::cout<<(short)eleType->getKind();
+                    std::cout<<" invalid type";
+                    return;
+                }
+
+            }
+            std::string basicType;
+            if(!recordFlag)
+                basicType= dynamic_cast<BuiltInType*>(eleType)->getTypeTypeAsString();
+            std::string wholeType;
+            for(int i=0;i!=dimensionLength.size();++i)
+            {
+                if(dimensionLength[i]>0)
+                    wholeType=wholeType+"["+std::to_string(dimensionLength[i])+"]";
+                else if(dimensionLength[i]==-1)
+                {
+                    if(i!=0)
+                        wholeType="*("+wholeType+")";
+                    else
+                        wholeType="*"+wholeType+"";
+                }
+                else if(dimensionLength[i]==0)
+                    wholeType="struct "+record+wholeType;
+            }
+            if(!recordFlag)
+                wholeType=basicType+wholeType;
+            std::cout<<wholeType;
+        }
         else
         {
             std::cout<<(short)cType->getKind();
@@ -218,6 +274,7 @@ public:
     }
 
     bool visitTranslationUnitDecl(TranslationUnitDecl *D) {
+        std::cout<<"dumper\n";
         std::cout << "TranslationUnitDecl\n";
         return true;
     }
@@ -514,7 +571,6 @@ public:
         recordLevel.push(S);
         std::cout << "ImplicitCastExpr ";
         outType(S->getPrevType());
-        // std::cout << "-->" << endl;
         outType(S->getCastType());
         std::cout << "\n";
         return true;

@@ -23,19 +23,23 @@ public:
     TranslationUnitDecl* curRoot;
     int fornum=0;
     int fornew=0;
+    bool success=true;
     std::ofstream outerror;
+    std::ofstream zqtest;
     ASTTypeCheck()
             : RecursiveASTVisitor()
     {
         tables.clear();
         outerror.open("../output/OutforErrors.txt", std::ios::app);
+        zqtest.open("../output/zqtest.txt", std::ios::app);
+        zqtest<<"typecheck***********************\n";
     }
     bool visitTranslationUnitDecl(TranslationUnitDecl*D)
     {
         curRoot=D;
-        //函数为空，不需要typecheck
-        std::cout<<"alloha"<<std::endl;
         curRoot->clearSymbolTable();
+        //函数为空，不需要typecheck
+        zqtest<<"alloha"<<std::endl;
         return true;
     }
     //以下几个visit只涉及符号表的构造，无类型检查
@@ -47,20 +51,36 @@ public:
         QualType curType=D->getQualType();
         if(fornum==fornew)
         {
-            if (tables.empty())
+            if(curRoot->checkSymbol(curName,curType))
             {
-                curRoot->addSymbol(curName, curType);
+                success=false;
+                outerror<<"Error,"<<curName<<" has already declared!\n";
+                return true;
             }
-            else{
+            curRoot->addSymbol(curName, curType);
+            if(!tables.empty())
+            {
                 curFunction = tables[tables.size() - 1];
+                if(curFunction->checkSymbol(curName,curType))
+                {
+                    success=false;
+                    outerror<<"Error,"<<curName<<" has already declared!\n";
+                    return true;
+                }
                 curFunction->addSymbol(curName, curType);
             }
         }
         else
         {
-            std::cout<<"ForStmt\n";
+            zqtest<<"ForStmt\n";
             fornew++;
             curFunction = tables[tables.size() - 1];
+            if(curFunction->checkSymbol(curName,curType))
+            {
+                success=false;
+                outerror<<"Error,"<<curName<<" has already declared!\n";
+                return true;
+            }
             curFunction->addSymbol(curName, curType);
         }
         return true;
@@ -70,6 +90,12 @@ public:
         curFunction=tables[tables.size() - 1];
         QualType curType = D->getQualType();
         std::string curName = D->getName();
+        if(curFunction->checkSymbol(curName,curType))
+        {
+            success=false;
+            outerror<<"Error,"<<curName<<" has already declared!\n";
+            return true;
+        }
         dynamic_cast<DeclContext*>(curFunction)->addSymbol(curName,curType);
         return true;
     }
@@ -77,7 +103,7 @@ public:
     {
         tables.push_back(D);
         allFunctions.push_back(*D);
-        std::cout<<"let us add a new function "<<D->getName()<<std::endl;
+        zqtest<<"let us add a new function "<<D->getName()<<std::endl;
         std::map<std::string, QualType>* firsttable=new std::map<std::string, QualType>();
         firsttable->clear();
         if(D->getNumParams()!=0)
@@ -117,7 +143,7 @@ public:
             QualType actualReturn = S->getRetValue()->getQualType();
             if (canBeCasted(actualReturn,shouldReturn))
             {
-                std::cout<<"A successful return in "<<curFunction->getName()<<"\n";
+                zqtest<<"A successful return in "<<curFunction->getName()<<"\n";
                 //不必向下检查了
                 return false;
             }
@@ -127,11 +153,20 @@ public:
             //当前不返回，那么函数必须是void的
             curFunction = tables[tables.size() - 1];
             QualType shouldReturn =curFunction->getQualType();
-            QualType* shouldPointer=& shouldReturn;
-            if (dynamic_cast<BuiltInType*>(shouldPointer)->typeEnum!= BuiltInType::_void)
+            if (shouldReturn.getType()->getKind()!=Type::k_BuiltInType)
             {
+                success=false;
                 outerror<< "Error, please check your return type " << std::endl;
-                return false;
+                return true;
+            }
+            else
+            {
+                if(dynamic_cast<BuiltInType*>(shouldReturn.getType())->getTypeTypeAsString()!="void")
+                {
+                    success=false;
+                    outerror<< "Error, please check your return type " << std::endl;
+                    return true;
+                }
             }
         }
     }
@@ -143,15 +178,18 @@ public:
     //检查重灾区——CallExpr
     bool visitCallExpr(CallExpr* E)
     {
+        E->setValueKind(ExprValueKind::LValue);
         //获取函数名称和类型
         if(E->getArg(0)->getKind()!=Stmt::k_DeclRefExpr)
         {
+            success=false;
             outerror<<"Error, check if the first parameter is declrefexpr"<<std::endl;
             return true;
         }
         //call的原函数，declrefexpr已经将自己的type变成函数的rettype了，可以放心使用
         if(E->getArg(0)->getKind()!=Expr::k_DeclRefExpr)
         {
+            success=false;
             outerror<<"Error, the first param in callexpr should be function in ast\n";
             return true;
         }
@@ -183,17 +221,17 @@ public:
                 //若函数参数全部匹配上了
                 if(flag)
                 {
-                    //todo:不全或者有简化
-                    if(canBeCasted(funcType,curType))
+                   /* if(canBeCasted(funcType,curType))
                     {
                         //此处是函数转指针
-                        PointerType* imType=new PointerType(&curType);
+                        QualType* newQT=new QualType();
+                        newQT->setType(curType.getType());
+                        PointerType* imType=new PointerType(newQT);
                         QualType imQualType(imType);
                         CopyQual(curType,imQualType);
-                        std::cout<<"function implicit *************************\n";
                         ImplicitCastExpr* curImplicit=new ImplicitCastExpr(imQualType,E->getArg(0));
                         E->setArg(0,curImplicit);
-                    }
+                    }*/
                     for(int j=0;j!=curFunc.getNumParams();++j)
                     {
                         ParamVarDecl*D=curFunc.getParam(j);
@@ -201,19 +239,22 @@ public:
                         Expr* actualPara=E->getArg(j+1);
                         if(canBeCasted(actualPara->getQualType(),paraType))
                         {
-                            //左转右
-                            ImplicitCastExpr* curImplicit=new ImplicitCastExpr(paraType,actualPara);
-                            curImplicit->setValueKind(ExprValueKind::RValue);
-                            E->setArg(j+1,curImplicit);
-                            std::cout<<"para implicitcast****************\n";
+                            //左转右和类型不同互转，两种情况
+                            if(actualPara->isLValue()||actualPara->getQualType()!=paraType)
+                            {
+                                ImplicitCastExpr* curImplicit=new ImplicitCastExpr(paraType,actualPara);
+                                curImplicit->setValueKind(ExprValueKind::RValue);
+                                E->setArg(j+1,curImplicit);
+                            }
                         }
                     }
-                    std::cout<<"A successful call "<<curName<<std::endl;
+                    zqtest<<"A successful call "<<curName<<std::endl;
                     return true;
                 }
 
             }
         }
+        success=false;
         outerror<<"Error,an invalid call function on "<<funcName<<"\n";
         return true;
     }
@@ -235,6 +276,7 @@ public:
                 {
                     if(sBuilt==BuiltInType::_void)
                     {
+                        success=false;
                         outerror<<"Error, invalid implicitcast"<<std::endl;
                         return false;
                     }
@@ -242,6 +284,7 @@ public:
                 }
                 else
                 {
+                    success=false;
                     outerror<<"Error, you have to return a value"<<std::endl;
                     return false;
                 }
@@ -249,7 +292,7 @@ public:
         }
 
     }
-    void CopyQual(QualType a,QualType b)
+    void CopyQual(QualType&a,QualType&b)
     {
         //前面的qualier给后面
         if(a.isRestrict())
@@ -281,9 +324,14 @@ public:
         curFunction->exitCurSymbolTable();
         return true;
     }
+    bool isSuccessful()
+    {
+        return success;
+    }
     ~ASTTypeCheck()
     {
         outerror.close();
+        zqtest.close();
     }
 };
 #endif //FRONTEND_ASTTYPECHECK_H

@@ -32,21 +32,35 @@ public:
     int fornum=0;
     int fornew=0;
     std::ofstream outerror;
+    std::ofstream zqtest;
+    bool success=true;
     //有个很大的问题就是declrefexpr必须要符号表才能确定，如果这个类不涉及符号表很多填充根本无法解决
     FillType()
             : RecursiveASTVisitor()
     {
         tables.clear();
         outerror.open("../output/OutforErrors.txt", std::ios::app);
+        zqtest.open("../output/zqtest.txt", std::ios::app);
+        zqtest<<"filltype*************************\n";
     }
     bool visitTranslationUnitDecl(TranslationUnitDecl*D)
     {
         curRoot=D;
-        std::cout<<"it is the end"<<std::endl;
+        zqtest<<"it is the end"<<std::endl;
         return true;
     }
     bool visitUnaryOperator(UnaryOperator* E)
     {
+        if(E->getSubExpr()->getQualType().getTypeKind()==Type::k_BuiltInType)
+        {
+            if(dynamic_cast<BuiltInType*>(E->getSubExpr()->getQualType().getType())
+            ->getTypeTypeAsString()=="port")
+            {
+                success=false;
+                outerror<<"Error, port can not be calculated by unary operator\n";
+                return true;
+            }
+        }
         switch (E->getOp())
         {
             case UnaryOperator::_address_of:
@@ -80,7 +94,7 @@ public:
     }
     bool visitBinaryOperator(BinaryOperator* E)
     {
-        std::cout<<"test:visit Binary \n";
+        zqtest<<"test:visit Binary \n";
         switch (E->getOp())
         {
             case BinaryOperator::_add:
@@ -89,6 +103,16 @@ public:
             case BinaryOperator::_div:
             case BinaryOperator::_mod:
             {
+                if(E->getRHS()->getQualType().getTypeKind()==Type::k_BuiltInType)
+                {
+                    if(dynamic_cast<BuiltInType*>(E->getRHS()->getQualType().getType())
+                               ->getTypeTypeAsString()=="port")
+                    {
+                        success=false;
+                        outerror<<"Error, port can not be calculated in current binary operator\n";
+                        return true;
+                    }
+                }
                 int equal=3;
                 QualType imQualType=getLarger(E->getLHS()->getQualType(),E->getRHS()->getQualType(),equal);
                 //binaryoperator的子节点是binaryoperator的情况下同样支持
@@ -127,9 +151,10 @@ public:
             case BinaryOperator::_lsh_assign:
             case BinaryOperator::_rsh_assign:
             {
-                std::cout<<"test: assign\n";
+                zqtest<<"test: assign\n";
                 if(E->getLHS()->getQualType().isConst())
                 {
+                    success=false;
                     outerror<<"Error,you cannot assign a RValue or a const value\n";
                     return true;
                 }
@@ -156,14 +181,66 @@ public:
             case BinaryOperator::_leq:
             case BinaryOperator::_geq:
             {
+                if(E->getRHS()->getQualType().getTypeKind()==Type::k_BuiltInType)
+                {
+                    if(dynamic_cast<BuiltInType*>(E->getRHS()->getQualType().getType())
+                               ->getTypeTypeAsString()=="port")
+                    {
+                        success=false;
+                        outerror<<"Error, port can not be calculated in current binary operator\n";
+                        return true;
+                    }
+                }
                 BuiltInType* newType=new BuiltInType(BuiltInType::_bool);
                 QualType newQualType(newType);
                 E->setType(newQualType);
                 E->setValueKind(ExprValueKind::RValue);
                 break;
             }
+            case BinaryOperator::_log_and:
+            case BinaryOperator:: _log_or:
+            {
+                QualType curQT=E->getLHS()->getQualType();
+                if(curQT.getTypeKind()!=Type::k_BuiltInType||
+                   dynamic_cast<BuiltInType*>(curQT.getType())->getTypeType()!=BuiltInType::_bool)
+                {
+                    QualType newQT=curQT;
+                    newQT.removeConst();
+                    BuiltInType* newType=new BuiltInType(BuiltInType::_bool);
+                    newQT.setType(newType);
+                    ImplicitCastExpr* curImplicit=new ImplicitCastExpr(newQT,E->getLHS());
+                    E->setLHS(curImplicit);
+                }
+
+                QualType curQT2=E->getRHS()->getQualType();
+                if(curQT2.getTypeKind()!=Type::k_BuiltInType||
+                   dynamic_cast<BuiltInType*>(curQT2.getType())->getTypeType()!=BuiltInType::_bool)
+                {
+                    QualType newQT=curQT;
+                    newQT.removeConst();
+                    BuiltInType* newType=new BuiltInType(BuiltInType::_bool);
+                    newQT.setType(newType);
+                    ImplicitCastExpr* curImplicit=new ImplicitCastExpr(newQT,E->getRHS());
+                    E->setRHS(curImplicit);
+                }
+
+                BuiltInType* newType=new BuiltInType(BuiltInType::_bool);
+                QualType newQualType(newType);
+                E->setType(newQualType);
+                E->setValueKind(ExprValueKind::RValue);
+            }
             default:
             {
+                if(E->getRHS()->getQualType().getTypeKind()==Type::k_BuiltInType)
+                {
+                    if(dynamic_cast<BuiltInType*>(E->getRHS()->getQualType().getType())
+                               ->getTypeTypeAsString()=="port")
+                    {
+                        success=false;
+                        outerror<<"Error, port can not be calculated in current binary operator\n";
+                        return true;
+                    }
+                }
                 E->setType(E->getRHS()->getQualType());
                 break;
             }
@@ -172,18 +249,20 @@ public:
     }
     bool visitIntegerLiteral(IntegerLiteral* E)
     {
-        std::cout<<"test:visit int "<<E->getValue()<<"\n";
+        zqtest<<"test:visit int "<<E->getValue()<<"\n";
         BuiltInType* newType=new BuiltInType(BuiltInType::_int);
         QualType newQualType(newType);
         E->setType(newQualType);
+        E->setValueKind(ExprValueKind::RValue);
         return true;
     }
     bool visitFloatingLiteral(FloatingLiteral* E)
     {
-        std::cout<<"test:visit float "<<E->getValue()<<"\n";
+        zqtest<<"test:visit float "<<E->getValue()<<"\n";
         BuiltInType* newType=new BuiltInType(BuiltInType::_float);
         QualType newQualType(newType);
         E->setType(newQualType);
+        E->setValueKind(ExprValueKind::RValue);
         return true;
     }
     bool visitStringLiteral(StringLiteral* E)
@@ -194,6 +273,7 @@ public:
         newType->setElementType(eleType);
         QualType newQualType(newType);
         E->setType(newQualType);
+        E->setValueKind(ExprValueKind::RValue);
         return true;
     }
     //选占空间更大的数据类型返回
@@ -201,37 +281,41 @@ public:
     {
         //equal=0代表类型一样，=1代表和a类型一样，=2代表和b类型一样
         //a b都是简单类型
-        std::cout<<"test: larger\n";
+        zqtest<<"test: larger\n";
         int space[8]={0,4,1,1,2,4,4,8};
         Type* atype=a.getType();
         if(atype==nullptr)
         {
+            success=false;
             outerror<<"Error, calculate operand is null";
-            std::cout<<(short)atype->getKind()<<"\n";
+            zqtest<<(short)atype->getKind()<<"\n";
         }
         Type* btype=b.getType();
         if(btype==nullptr)
         {
+            success=false;
             outerror<<"Error, calculate operand is null";
-            std::cout<<(short)btype->getKind()<<"\n";
+            zqtest<<(short)btype->getKind()<<"\n";
         }
         short anum=dynamic_cast<BuiltInType*> (atype)->getTypeType();
         short bnum=dynamic_cast<BuiltInType*> (btype)->getTypeType();
         if(anum==bnum)
             equal=0;
-        if(space[anum]>=space[bnum])
+        else if(space[anum]>=space[bnum])
         {
             equal=1;
             return a;
         }
-        equal=2;
+        else
+           equal=2;
         return b;
     }
     bool visitSelectorArray(SelectorArray*E) {
         //还要填充subexpr的类型
-        std::cout<<"test: SelectorArray \n";
+        zqtest<<"test: SelectorArray \n";
         if(!E->hasSubExpr())
         {
+            success=false;
             outerror<<"Error, this SelectorArray doesn't hava a subexpr\n";
             return true;
         }
@@ -244,6 +328,7 @@ public:
             Selector * curSelector=curSelectors[i];
             if(curSelector== nullptr)
             {
+                success=false;
                 outerror<<"Error,curSelector is nullptr\n";
                 return true;
             }
@@ -251,10 +336,11 @@ public:
             {
                 case Expr::k_DerefSelector:
                 {
-                    std::cout<<"test: pointer ";
-                    std::cout<<"test type:"<<(short)curQualType.getTypeKind()<<"***\n";
+                    zqtest<<"test: pointer ";
+                    zqtest<<"test type:"<<(short)curQualType.getTypeKind()<<"***\n";
                     if(curQualType.getTypeKind()!=Type::k_PointerType)
                     {
+                        success=false;
                         outerror<<"Error,there is not a PointerType in DerefSelector\n";
                         return true;
                     }
@@ -263,10 +349,11 @@ public:
                 }
                 case Expr::k_IndexSelector:
                 {
-                    std::cout<<"test: index  ";
-                    std::cout<<"test type:"<<(short)curQualType.getTypeKind()<<"***\n";
+                    zqtest<<"test: index  ";
+                    zqtest<<"test type:"<<(short)curQualType.getTypeKind()<<"***\n";
                     if(curQualType.getTypeKind()==Type::k_BuiltInType)
                     {
+                        success=false;
                         outerror<<"Error,it is builtintype, not an array in IndexSelector\n";
                         return true;
                     }
@@ -275,10 +362,11 @@ public:
                 }
                 case Expr::k_FieldSelector:
                 {
-                    std::cout<<"test:field\n";
+                    zqtest<<"test:field\n";
                     Type* curType= curQualType.getType();
                     if(curType->getKind()!=Type::k_UnknownType&&curType->getKind()!=Type::k_RecordType)
                     {
+                        success=false;
                         outerror<<"Error,it is not UnknownType or RecordType in FieldSelector\n";
                         return true;
                     }
@@ -310,12 +398,13 @@ public:
                     }
                     if(k>=definedMembers.size())
                     {
+                        success=false;
                         outerror<<"Error,curMember do not belong to curRecord\n";
                         return true;
                     }
                     else
                     {
-                        std::cout<<"add idx "<<k<<" to member "<<definedMembers[k]<<"\n";
+                        zqtest<<"add idx "<<k<<" to member "<<definedMembers[k]<<"\n";
                         dynamic_cast<FieldSelector*>(curSelector)->setIdx(k);
                         std::vector<QualType> tempQualTypes=recordMemberQTs.
                                 find(dynamic_cast<RecordType*>(curType))->second;
@@ -325,14 +414,14 @@ public:
                 }
             }
         }
-        std::cout<<"test:selector array basic type:"<<(short )curQualType.getTypeKind()<<"\n";
+        zqtest<<"test:selector array basic type:"<<(short )curQualType.getTypeKind()<<"\n";
         E->setType(curQualType);
         return false;
     }
     bool visitRecordDecl(RecordDecl* D)
     {
         //处理struct和union
-        std::cout<<"test: visit record decl\n";
+        zqtest<<"test: visit record decl\n";
         RecordType* curRecordType=new RecordType(D->isStruct());
         std::vector<std::string> memberNames;
         std::vector<QualType>memberQTs;
@@ -349,6 +438,7 @@ public:
         }
         if(D->hasTag())
         {
+            curRecordType->setName(D->getName());
             recordMembers.insert(std::make_pair(curRecordType,memberNames));
             recordRef.insert(std::make_pair(D->getName(),curRecordType));
             recordMemberQTs.insert(std::make_pair(curRecordType,memberQTs));
@@ -369,7 +459,7 @@ public:
         Type * tempType=newQT.getType();
         Type* hh=new Type();
         bool  onetype=true;
-       while(tempType->getKind()!=Type::k_BuiltInType
+        while(tempType->getKind()!=Type::k_BuiltInType
              &&tempType->getKind()!=Type::k_UnknownType)
         {
             onetype=false;
@@ -388,7 +478,7 @@ public:
         }
         if(tempType->getKind()==Type::k_UnknownType)
         {
-            std::cout<<"test: vardecl changes unknown type\n";
+            zqtest<<"test: vardecl changes unknown type\n";
             std::string unknownName= dynamic_cast<UnknownType*>(tempType)->getName();
             if(recordRef.find(unknownName)!=recordRef.end())
             {
@@ -425,9 +515,101 @@ public:
         }
         return true;
     }
+    //
+    bool visitFunctionDecl(FunctionDecl* D)
+    {
+        tables.push_back(D);
+        allFunctions.push_back(*D);
+        zqtest<<"let us add a new function "<<D->getName()<<std::endl;
+        std::map<std::string, QualType>* firsttable=new std::map<std::string, QualType>();
+        firsttable->clear();
+        if(D->getNumParams()!=0)
+        {
+            D->addSymbolTable(firsttable);
+        }
+        return true;
+    }
+    bool visitCallExpr(CallExpr* E)
+    {
+        DeclRefExpr* function= dynamic_cast<DeclRefExpr* >(E->getArg(0));
+        std::string funcName=function->getRefName();
+        QualType funcType;
+        for(int i=0;i!=allFunctions.size();++i)
+        {
+            FunctionDecl curFunc=allFunctions[i];
+            std::string curName=curFunc.getName();
+            if(curName==funcName)
+            {
+                funcType=curFunc.getQualType();
+                break;
+            }
+        }
+        E->setType(funcType);
+        return true;
+    }
+    bool cleanupFunctionDecl(){
+        tables[tables.size()-1]->clearSymbolTable();
+        tables.erase(tables.end()-1);
+        return true;
+    }
+    //到此为止
+    bool visitForStmt(ForStmt*S)
+    {
+        Expr* curCondition=S->getCond();
+        QualType curQT=curCondition->getQualType();
+        curQT.removeConst();
+        if(curQT.getTypeKind()!=Type::k_BuiltInType||
+           dynamic_cast<BuiltInType*>(curQT.getType())->getTypeType()!=BuiltInType::_bool)
+        {
+            QualType newQT=curQT;
+            BuiltInType* newType=new BuiltInType(BuiltInType::_bool);
+            newQT.setType(newType);
+            ImplicitCastExpr* curImplicit=new ImplicitCastExpr(newQT,S->getCond());
+            S->setCond(curImplicit);
+        }
+        return true;
+    }
+    bool visitWhileStmt(WhileStmt*S)
+    {
+        Expr* curCondition=S->getCond();
+        QualType curQT=curCondition->getQualType();
+        curQT.removeConst();
+        if(curQT.getTypeKind()!=Type::k_BuiltInType||
+           dynamic_cast<BuiltInType*>(curQT.getType())->getTypeType()!=BuiltInType::_bool)
+        {
+            QualType newQT=curQT;
+            BuiltInType* newType=new BuiltInType(BuiltInType::_bool);
+            newQT.setType(newType);
+            ImplicitCastExpr* curImplicit=new ImplicitCastExpr(newQT,S->getCond());
+            S->setCond(curImplicit);
+        }
+        return true;
+    }
+    bool visitIfStmt(IfStmt*S)
+    {
+        Expr* curCondition=S->getCond();
+        QualType curQT=curCondition->getQualType();
+        curQT.removeConst();
+        if(curQT.getTypeKind()!=Type::k_BuiltInType||
+           dynamic_cast<BuiltInType*>(curQT.getType())->getTypeType()!=BuiltInType::_bool)
+        {
+            QualType newQT=curQT;
+            BuiltInType* newType=new BuiltInType(BuiltInType::_bool);
+            newQT.setType(newType);
+            ImplicitCastExpr* curImplicit=new ImplicitCastExpr(newQT,S->getCond());
+            S->setCond(curImplicit);
+        }
+        return true;
+    }
+    bool isSuccessful()
+    {
+        return success;
+    }
     ~FillType()
     {
         outerror.close();
+        zqtest.close();
+        curRoot->clearSymbolTable();
     }
 };
 #endif //FRONTEND_FILLTYPE_H

@@ -23,6 +23,7 @@
 #include <vector>
 #include <string>
 #include<map>
+#include <fstream>
 #include <cassert>
 #include "include/AST/Type.h"
 #include "include/AST/AbstractASTNode.h"
@@ -135,7 +136,7 @@ public:
                 if (symbolTables[it]->find(name) != symbolTables[it]->end())
                 {
                     type= symbolTables[it]->find(name)->second;
-                    std::cout<<name<<" is a identifier~ \n";
+                   // std::cout<<name<<" is a identifier~ \n";
                     return true;
                 }
             }
@@ -151,11 +152,11 @@ public:
         std::map<std::string, QualType>* curtable = this->getCurSymbolTable();
         if (!checkSymbol(name,type))
         {
-            std::cout<<"add a symbol "<<name<<std::endl;
+            //std::cout<<"add a symbol "<<name<<std::endl;
             curtable->insert(std::make_pair(name, type));
             return true;
         }
-        std::cout << "Error, it has already declared!";
+       // std::cout << "Error, it has already declared!";
         return false;
     }
     void clearSymbolTable()
@@ -204,13 +205,15 @@ public:
     {
         if(!checkSymbol(_name,_type))
         {
-            std::cout<<"add a symbol "<<_name<<std::endl;
+            //std::cout<<"add a symbol "<<_name<<std::endl;
             short k=_type.getTypeKind();
             symbolTable.insert(make_pair(_name, _type));
         }
-        else
-            std::cout<<_name<<" has been already added\n";
-
+        /* else
+        {
+           std::cout<<_name<<" has been already added\n";
+        }
+         */
     }
     bool checkSymbol(std::string name, QualType&type)
     {
@@ -218,7 +221,7 @@ public:
         if(symbolTable.find(name)!=symbolTable.end())
         {
             type=symbolTable.find(name)->second;
-            std::cout<<name<<" is a global identifier~ \n";
+            //std::cout<<name<<" is a global identifier~ \n";
             return true;
         }
         return false;

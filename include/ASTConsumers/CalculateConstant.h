@@ -35,17 +35,21 @@ public:
     int fornum=0;
     int fornew=0;
     std::ofstream outerror;
+    std::ofstream zqtest;
+    bool success=true;
     //有个很大的问题就是declrefexpr必须要符号表才能确定，如果这个类不涉及符号表很多填充根本无法解决
     CalculateConstant()
             : RecursiveASTVisitor()
     {
         tables.clear();
         outerror.open("../output/OutforErrors.txt", std::ios::app);
+        zqtest.open("../output/zqtest.txt", std::ios::app);
+        zqtest<<"calculateConstant*******************\n";
     }
     bool visitTranslationUnitDecl(TranslationUnitDecl*D)
     {
         curRoot=D;
-        std::cout<<"it is the end"<<std::endl;
+        zqtest<<"it is the end"<<std::endl;
         return true;
     }
     bool visitUnaryOperator(UnaryOperator* E)
@@ -143,7 +147,7 @@ public:
                 if(getConstValue(curLHS,lhs)&&getConstValue(curRHS,rhs))
                 {
                     result=lhs+rhs;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                     if(constTabele.find(curLHS)!=constTabele.end()
                        &&constTabele.find(curRHS)!=constTabele.end())
@@ -160,7 +164,7 @@ public:
                 if(getConstValue(curLHS,lhs)&&getConstValue(curRHS,rhs))
                 {
                     result=lhs-rhs;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                     if(constTabele.find(curLHS)!=constTabele.end()
                        &&constTabele.find(curRHS)!=constTabele.end())
@@ -177,7 +181,7 @@ public:
                 if(getConstValue(curLHS,lhs)&&getConstValue(curRHS,rhs))
                 {
                     result=lhs*rhs;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                     if(constTabele.find(curLHS)!=constTabele.end()
                        &&constTabele.find(curRHS)!=constTabele.end())
@@ -195,11 +199,12 @@ public:
                 {
                     if(rhs==0)
                     {
+                        success=false;
                         outerror<<"Error, divisor can not be 0\n";
                         return true;
                     }
                     result=lhs/rhs;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                     if(constTabele.find(curLHS)!=constTabele.end()
                        &&constTabele.find(curRHS)!=constTabele.end())
@@ -216,7 +221,7 @@ public:
                 if(getConstValue(curLHS,lhs)&&getConstValue(curRHS,rhs))
                 {
                     result=int(lhs)%int(rhs);
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                     if(constTabele.find(curLHS)!=constTabele.end()
                        &&constTabele.find(curRHS)!=constTabele.end())
@@ -232,7 +237,7 @@ public:
                 if(getConstValue(curRHS,rhs))
                 {
                     result=rhs;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                     if(constTabele.find(curLHS)!=constTabele.end()
                        &&constTabele.find(curRHS)!=constTabele.end())
@@ -259,7 +264,7 @@ public:
                         result=1;
                     else
                         result=0;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                     if(constTabele.find(curLHS)!=constTabele.end()
                        &&constTabele.find(curRHS)!=constTabele.end())
@@ -278,7 +283,7 @@ public:
                         result=1;
                     else
                         result=0;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                     if(constTabele.find(curLHS)!=constTabele.end()
                        &&constTabele.find(curRHS)!=constTabele.end())
@@ -297,7 +302,7 @@ public:
                         result=1;
                     else
                         result=0;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                 }
                 break;
@@ -311,7 +316,7 @@ public:
                         result=1;
                     else
                         result=0;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                 }
                 break;
@@ -325,7 +330,7 @@ public:
                         result=1;
                     else
                         result=0;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                 }
                 break;
@@ -339,7 +344,7 @@ public:
                         result=1;
                     else
                         result=0;
-                    std::cout<<"binary result "<<result<<"\n";
+                    zqtest<<"binary result "<<result<<"\n";
                     Results.insert(std::make_pair(E,result));
                 }
                 break;
@@ -353,7 +358,7 @@ public:
     }
     bool visitIntegerLiteral(IntegerLiteral* E)
     {
-        std::cout<<"integer "<<(float)E->getValue()<<"\n";
+        zqtest<<"integer "<<(float)E->getValue()<<"\n";
         Results.insert(std::make_pair(E,(float)E->getValue()));
         constTabele.insert(std::make_pair(E,E->getValue()));
         return true;
@@ -382,7 +387,7 @@ public:
         if(forCalculateArray.find(D->getRefName())==forCalculateArray.end())
             return true;
         result=forCalculateArray.find(D->getRefName())->second;
-        std::cout<<"we can find the value "<<D->getRefName()<<" "<<result<<"\n";
+        zqtest<<"we can find the value "<<D->getRefName()<<" "<<result<<"\n";
         Results.insert(std::make_pair(D,result));
         return true;
     }
@@ -391,6 +396,7 @@ public:
         //在这里整一个越界判断，针对大小确定的数组，并且地址要是常数
         if(!E->hasSubExpr())
         {
+            success=false;
             outerror<<"Error, this SelectorArray doesn't hava a subexpr\n";
             return true;
         }
@@ -403,7 +409,7 @@ public:
             for(int i=0;i!=numSelectors;++i)
             {
                 Selector * curSelector=curSelectors[i];
-                std::cout<<"test:selectors\n";
+                zqtest<<"test:selectors\n";
                 switch (curSelector->getKind())
                 {
                     case Expr::k_DerefSelector:
@@ -424,11 +430,13 @@ public:
                                                         (curSelector)->getIdxExpr())->second;
                             if(fabs(fAddress-(float)(curAddress))>=0.001)
                             {
+                                success=false;
                                 outerror<<"Error,array's address should be an integer\n";
                             }
                             if(maxSize<=curAddress)
                             {
-                                std::cout<<maxSize<<" <= "<<curAddress;
+                                success=false;
+                                zqtest<<maxSize<<" <= "<<curAddress;
                                 outerror<<"Error,array's address exceed its size\n";
                             }
                         }
@@ -447,19 +455,41 @@ public:
     }
     bool visitVarDecl(VarDecl* D)
     {
+        Type* tempType=D->getQualType().getType();
+        if(tempType->getKind()==Type::k_BuiltInType&&
+           dynamic_cast<BuiltInType*>(tempType)->getTypeTypeAsString()=="port")
+        {
+            if(D->getInitializer()== nullptr)
+            {
+                success=false;
+                outerror<<"Error, port must be initialized\n";
+                return true;
+            }
+            else
+            {
+                if(constTabele.find(D->getInitializer())==constTabele.end())
+                {
+                    success=false;
+                    outerror<<"Error, post must be initialized by an integerLiteral\n";
+                    return true;
+                }
+            }
+        }
         if(D->getInitializer()!= nullptr)
         {
             if(D->getInitializer()->getKind()==Expr::k_IntegerLiteral)
             {
-                std::cout<<"test:record int "<<D->getName()<<"\n";
+                zqtest<<"test:record int "<<D->getName()<<"\n";
                 forCalculateArray.insert(std::make_pair(D->getName(),
                         dynamic_cast<IntegerLiteral*>(D->getInitializer())->getValue()));
                if(D->getQualType().isConst())
                {
                    constName.insert(std::make_pair(D->getName(),
                            dynamic_cast<IntegerLiteral*>(D->getInitializer())->getValue()));
+                   constTabele.insert(std::make_pair(D->getInitializer(),
+                           dynamic_cast<IntegerLiteral*>(D->getInitializer())->getValue()));
                }
-                std::cout<<"test:int ends\n";
+                zqtest<<"test:int ends\n";
             }
             else if(D->getInitializer()->getKind()==Expr::k_FloatingLiteral)
             {
@@ -468,7 +498,7 @@ public:
             }
             else if(D->getInitializer()->getKind()==Expr::k_UnaryOperator)
             {
-                std::cout<<" record int "<<D->getName()<<"\n";
+                zqtest<<" record int "<<D->getName()<<"\n";
                 float a=Results.find(dynamic_cast<UnaryOperator*>(D->getInitializer()))->second;
                 forCalculateArray.insert(std::make_pair(D->getName(),a));
                 if(D->getQualType().isConst()&&
@@ -480,7 +510,7 @@ public:
             }
             else if(D->getInitializer()->getKind()==Expr::k_BinaryOperator)
             {
-                std::cout<<" record int "<<D->getName()<<"\n";
+                zqtest<<" record int "<<D->getName()<<"\n";
                 float a=Results.find(dynamic_cast<BinaryOperator*>(D->getInitializer()))->second;
                 forCalculateArray.insert(std::make_pair(D->getName(),a));
                 if(D->getQualType().isConst()&&
@@ -509,14 +539,16 @@ public:
                 }
                 else if (curSizeExpr->getKind()==Expr::k_DeclRefExpr)
                 {
-                    if(constTabele.find(curSizeExpr)==constTabele.end())
+                    if(constName.find(dynamic_cast<DeclRefExpr*>(curSizeExpr)->getRefName())
+                    ==constName.end())
                     {
-                        isconst==false;
+                        isconst=false;
                         break;
                     }
                     else
                     {
-                        int curSize=constTabele.find(curSizeExpr)->second;
+                        int curSize=constName.find(
+                                dynamic_cast<DeclRefExpr*>(curSizeExpr)->getRefName())->second;
                         dimensions.push_back(curSize);
                         isconst=true;
                     }
@@ -526,7 +558,7 @@ public:
                     traverseExprHelper(curSizeExpr, "Calculate sizeExpr");
                     if(constTabele.find(curSizeExpr)==constTabele.end())
                     {
-                        isconst==false;
+                        isconst=false;
                         break;
                     }
                     else
@@ -540,7 +572,17 @@ public:
             }
             if(isconst)
             {
-                ConstArrayType* newTypes[dimensions.size()];
+                if(dimensions.size()>10)
+                {
+                    outerror<<"Error, the array's dimension is lager than 10\n";
+                    success=false;
+                    return true;
+                }
+                ConstArrayType* newTypes[10];
+                for(int i=0;i!=10;++i)
+                {
+                    newTypes[i] =new ConstArrayType();
+                }
                 Type*temp=DType;
                 //构造一个多层constarray
                 for(int i=dimensions.size()-1;i>=0;--i)
@@ -572,9 +614,15 @@ public:
        }
        return false;
     }
+    bool isSuccessful()
+    {
+        return success;
+    }
     ~CalculateConstant()
     {
+        curRoot->clearSymbolTable();
         outerror.close();
+        zqtest.close();
     }
 };
 

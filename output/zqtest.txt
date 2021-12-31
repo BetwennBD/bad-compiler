@@ -1,0 +1,21 @@
+fillreference************
+alloha
+let us add a new function f
+let us add a new function main
+filltype*************************
+test:visit int 0
+let us add a new function f
+test:visit int 0
+let us add a new function main
+it is the end
+calculateConstant*******************
+integer 0
+integer 0
+it is the end
+typecheck***********************
+alloha
+let us add a new function f
+A successful return in f
+let us add a new function main
+varimplicit***************
+alloha

@@ -1,6 +1,6 @@
 cmake-build-debug
 CMakeLists.txt
-include/ASTConsumers/IRGenerator.h
+include/IRGenerator/IRGenerator.h
 implement/CodeGen
 output/*
 main.cpp
